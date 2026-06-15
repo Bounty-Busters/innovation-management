@@ -25,4 +25,3 @@ Try to put as many of your agent-specific artifacts right into this repo, tracke
 Since no public, live hosted SQL database with EAN codes is directly connectable:
 
 - **Importer Connector:** We will implement an import module to load pharmacy inventory/medications from structured files (CSV/Excel format mimicking ANMDMR/CIM schema).
-- **Mock Synthesizer:** If no actual data files are provided, the system will use a local database initializer to synthesize realistic mock medication data (with valid ATC structures, CIM/EAN codes, and categories) to populate the schema.
