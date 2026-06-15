@@ -12,7 +12,7 @@
 erDiagram
     User ||--o{ Order : "plasează"
     User ||--o{ Pharmacy : "deține (PharmOwner)"
-    User }o--o| Pharmacy : "lucrează la (Pharmacist)"
+    User }o--o| Location : "lucrează la (Pharmacist)"
     Pharmacy ||--|{ Location : "are"
     Location ||--o{ MedStock : "stochează"
     Location ||--o{ WorkingHour : "program"
@@ -84,10 +84,12 @@ O singură tabelă `users` cu o coloană discriminator (`dtype` sau `role`). Câ
 #### Pharmacist (extends User)
 
 **Relații:**
-- `pharmacy` → `@ManyToOne` → FK `pharmacy_id` — farmacia la care lucrează
+- `location` → `@ManyToOne` → FK `location_id` → `Location` — locația (punctul de lucru) la care lucrează
 
-> **Notă:** `Pharmacist` nu are câmpuri suplimentare proprii, doar relația către `Pharmacy`.
+> **Notă:** `Pharmacist` nu are câmpuri suplimentare proprii, doar relația către `Location`.
+> Prin `location.pharmacy` se poate naviga la farmacia-mamă dacă e nevoie.
 > `SuperUser` nu are câmpuri/relații extra → nu necesită subclasă separată, se folosește direct `User` cu `role = SUPER_USER`.
+> **Mutare la altă locație** = simplu update pe `location_id`.
 
 ---
 
@@ -113,8 +115,9 @@ O singură tabelă `users` cu o coloană discriminator (`dtype` sau `role`). Câ
 **Relații:**
 - `owner` → `@ManyToOne` → FK `owner_id` → `User` (PharmOwner) — proprietarul
 - `locations` → `@OneToMany(mappedBy = "pharmacy")` — punctele de lucru
-- `pharmacists` → `@OneToMany(mappedBy = "pharmacy")` — farmaciștii angajați
 - `syncLogs` → `@OneToMany(mappedBy = "pharmacy")` — istoricul sync-urilor
+
+> ~~`pharmacists`~~ — **mutat pe `Location`**. Farmaciștii sunt legați de locație, nu de lanțul de farmacii.
 
 ---
 
@@ -142,10 +145,11 @@ O singură tabelă `users` cu o coloană discriminator (`dtype` sau `role`). Câ
 **Relații:**
 - `pharmacy` → `@ManyToOne` → FK `pharmacy_id` → `Pharmacy` — farmacia mamă
 - `workingHours` → `@OneToMany(mappedBy = "location", cascade = ALL)` — programul pe zile
+- `pharmacists` → `@OneToMany(mappedBy = "location")` — farmaciștii care lucrează aici
 - `medStocks` → `@OneToMany(mappedBy = "location")` — stocurile de medicamente
 - `orders` → `@OneToMany(mappedBy = "pickupLocation")` — comenzile Click & Collect
 
-> ✅ **Confirmat:** Stocul este legat de **Location** (nu de Pharmacy) — stocuri diferite pe fiecare punct de lucru.
+> ✅ **Confirmat:** Atât stocul cât și farmaciștii sunt legați de **Location** — autorizare per punct de lucru.
 
 ---
 
@@ -392,7 +396,7 @@ Astfel, fiecare entitate concretă moștenește `id`, `createdAt`, `updatedAt` f
 | Relație | Tip | FK în tabelă | Observații |
 |---------|-----|-------------|------------|
 | User (PharmOwner) → Pharmacy | `@OneToMany` | `pharmacies.owner_id` | Un owner poate deține N farmacii |
-| User (Pharmacist) → Pharmacy | `@ManyToOne` | `users.pharmacy_id` | Un farmacist lucrează la o farmacie |
+| User (Pharmacist) → Location | `@ManyToOne` | `users.location_id` | Un farmacist lucrează la o locație specifică |
 | Pharmacy → Location | `@OneToMany` | `locations.pharmacy_id` | O farmacie are N puncte de lucru |
 | Location → WorkingHour | `@OneToMany` | `working_hours.location_id` | Program de lucru per zi |
 | Location ↔ Medication (via MedStock) | M:N promovată | `med_stocks.location_id`, `med_stocks.medication_id` | Stoc per locație, cu preț și cantitate |
