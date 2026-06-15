@@ -48,11 +48,11 @@
     * Pharmacies
     * Medications
     * Clients (Frontend)
-    * Orders (Requests for Meds) + Graphs/Statistics + Manual DB Sync for Pharmacy
+    * Orders (Requests for Meds) + Graphs/Statistics + Manual DB Sync for Pharmacy - note: nah but the sync shuoldnt be only manual from DB, acccording to `notes/perete-wapp.md`
   * **Business User:**
     * Pharmacy / Pharmacies management
     * Medications management
-    * Clients + Orders (Accept / Reject / Undo) + Graphs/Statistics + Manual DB Sync for Pharmacy
+    * Clients + Orders (Accept / Reject / Undo) + Graphs/Statistics + Manual DB Sync for Pharmacy - note: nah but the sync shuoldnt be only manual from DB, acccording to `notes/perete-wapp.md`
 
 ---
 
