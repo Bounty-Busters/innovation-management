@@ -1,54 +1,73 @@
-IDE:
--Antigravity
-Backend:
--Java with Spring(/Spring Boot)
--JDBC/Hibernate
--REST API
-Frontend:
--JavaScript/TypeScript/React/Angular/ ember js(TEMPALTING LANGUAGE) SAU ALTE PROPUNERI
+# Project Overview & Requirements
 
-Links pt. modele de pagini in frontend:
-https://www.drmax.ro/enterogermina-forte-suspensie-orala-10-flacoane-sanofi
-https://www.compari.ro/monitoare-c3126/asus/rog-strix-oled-xg27aqwmg-p1272818941/
-https://openfreemap.org/
+## Technical Stack
 
-Frontend:
--Storefront: 1. Listing FARMACII 2. Harta FARMACII 3. Listing MEDICAMENTE 4. SEARCH/FILTER 5. CATEGORII FARMACII/MEDICAMENTE
-\*Model de business:
-*\*\*(Home v1)Switch between Medicamente / Farmacii
-if Farmacii -> Listing/Searching/Filtering for Farmacii -> PDP Pharm -> Listing Meds of that Pharm -> PDP Selected Med
-else Home v2
-(Home v2)Listing/Searching/Filtering for Meds -> PDP Selected Med -> Med STOCK
--> Click and Collect -> *Payment System(price per time reserved)
--> Harta cu FARMACII
--> LISTING FARMACII
--> FILTRE FARMACII(default: pret, locatie)
+* **IDE:** Antigravity
+* **Backend:**
+  * Java with Spring / Spring Boot
+  * JDBC / Hibernate
+  * REST API
+  * Relational Database (SQL)
+* **Frontend:**
+  * JavaScript / TypeScript
+  * React / Angular / Ember.js (Templating Language) or other options
 
-    User Account
-    Login/Create Account
+## Reference Links
+* [Dr. Max - Enterogermina Forte](https://www.drmax.ro/enterogermina-forte-suspensie-orala-10-flacoane-sanofi)
+* [Compari.ro - ASUS ROG Strix OLED](https://www.compari.ro/monitoare-c3126/asus/rog-strix-oled-xg27aqwmg-p1272818941/)
+* [OpenFreeMap](https://openfreemap.org/)
 
--Admin Panel:
-Create Account pt. Farmacisti
-Login: -> SUPER USER: CRUD:
--> UTILIZATORI ADMIN(FARMACISTI)
--> FARMACII
--> MEDICAMENTE
--> CLIENTI(FRONTEND)
--> 'ORDERS'(Requests for MEDS) + *GRAFICE/STATISTICI + SYNC MANUAL BAZA DE DATE FARMACIE
--> BUSINESS USER:
--> FARMACIA/FARMACIILE
--> MEDICAMENTELE
--> CLIENTI + 'ORDERS'(Requests for MEDS -> Accept/Reject/Undo) + *GRAFICE/STATISTICI + SYNC MANUAL BAZA DE DATE FARMACIE
+---
 
-Backend:
-BAZA DE DATE RELATIONALA
-REST API
-CLASE/ENTITATI DB: - UTILIZATORI(4 tipuri: client, super, owner, farmacist -> locatie) - FARMACII - LOCATII - LM_STOCK(many_to_many) - MEDICAMENTE - 'ORDERS'(Requests for MEDS)
-SYNC(IMPORT) CU BAZA DE DATE/ERP-UL/(CSV) A UNEI FARMACII
--> GET
-CLICK AND COLLECT(Reserve)
--> efecte in admin
--> Accept/Reject/Undo
-AUTHENTICATION
-CREATE USER ACCOUNT
-NOTIFICATION in *Admin/*Email/\*Phone
+## Frontend Requirements
+
+### Storefront
+1. **Listing:** Pharmacies (Farmacii)
+2. **Map:** Pharmacies (Harta Farmacii)
+3. **Listing:** Medications (Medicamente)
+4. **Search & Filter**
+5. **Categories:** Pharmacies and Medications
+
+#### User Flows & Business Model
+* **Home v1 (Switch between Medications / Pharmacies):**
+  * **If Pharmacies:**
+    * Search/Filter/List Pharmacies $\rightarrow$ Pharmacy PDP $\rightarrow$ List Meds of that Pharmacy $\rightarrow$ Selected Medication PDP
+  * **If Medications (Home v2):**
+    * Search/Filter/List Medications $\rightarrow$ Selected Medication PDP $\rightarrow$ Medication Stock $\rightarrow$ Click & Collect $\rightarrow$ Payment System (Price per time reserved) $\rightarrow$ Map with Pharmacies $\rightarrow$ Pharmacy Listing $\rightarrow$ Pharmacy Filters (Default: Price, Location)
+* **User Account:**
+  * Login / Create Account
+
+### Admin Panel
+* **Account Creation:** Create Account for Pharmacists
+* **Login & Roles:**
+  * **Super User (CRUD):**
+    * Admin Users (Pharmacists)
+    * Pharmacies
+    * Medications
+    * Clients (Frontend)
+    * Orders (Requests for Meds) + Graphs/Statistics + Manual DB Sync for Pharmacy
+  * **Business User:**
+    * Pharmacy / Pharmacies management
+    * Medications management
+    * Clients + Orders (Accept / Reject / Undo) + Graphs/Statistics + Manual DB Sync for Pharmacy
+
+---
+
+## Backend Requirements
+
+* **Relational Database**
+* **REST API**
+* **Database Entities / Classes:**
+  * `Users` (4 Roles: Client, Super User, Owner, Pharmacist $\rightarrow$ Linked to Location)
+  * `Pharmacies`
+  * `Locations`
+  * `LM_Stock` (Many-to-Many relationship between Pharmacy and Medication)
+  * `Medications`
+  * `Orders` (Requests for Medications)
+* **Sync & Import:** Sync/Import CSV / DB / ERP data of a pharmacy (via GET)
+* **Click & Collect (Reservation):**
+  * Triggers actions and states in Admin panel
+  * Actions: Accept / Reject / Undo
+* **Authentication & Authorization**
+* **Account Creation**
+* **Notifications:** Admin / Email / Phone
