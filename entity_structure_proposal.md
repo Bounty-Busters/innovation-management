@@ -193,17 +193,19 @@ O singură tabelă `users` cu o coloană discriminator (`dtype` sau `role`). Câ
 |---|-----------|-----------|----------|--------|--------------|------------|
 | 1 | `id` | `id` | `Long` | `BIGINT` | PK, AUTO_INCREMENT | |
 | 2 | `ean` | `ean` | `String` | `VARCHAR(13)` | UNIQUE, NOT NULL | European Article Number (8 sau 13 cifre) |
-| 3 | `name` | `name` | `String` | `VARCHAR(300)` | NOT NULL | Denumire comercială |
-| 4 | `activeSubstance` | `active_substance` | `String` | `VARCHAR(300)` | | Substanța activă (ex: Paracetamol) |
-| 5 | `manufacturer` | `manufacturer` | `String` | `VARCHAR(200)` | | Producător |
-| 6 | `dosage` | `dosage` | `String` | `VARCHAR(50)` | | "500mg", "10mg/ml" |
-| 7 | `form` | `form` | `MedForm` (Enum) | `VARCHAR(30)` | | `TABLET`, `CAPSULE`, `SYRUP`, `CREAM`, `INJECTION`, `DROPS`, `SPRAY`, `OTHER` |
-| 8 | `prescriptionRequired` | `prescription_required` | `Boolean` | `BOOLEAN` | NOT NULL, default `false` | Cu/fără rețetă |
-| 9 | `description` | `description` | `String` | `TEXT` | | Prospect / descriere |
-| 10 | `category` | `category` | `String` | `VARCHAR(100)` | | Categoria (ex: "Antibiotic", "Analgezic") |
-| 11 | `imageUrl` | `image_url` | `String` | `VARCHAR(500)` | | URL poză produs |
-| 12 | `createdAt` | `created_at` | `LocalDateTime` | `TIMESTAMP` | NOT NULL | |
-| 13 | `updatedAt` | `updated_at` | `LocalDateTime` | `TIMESTAMP` | NOT NULL | |
+| 3 | `cimCode` | `cim_code` | `String` | `VARCHAR(20)` | | Cod CIM (Nomenclatorul ANMDMR România) |
+| 4 | `atcCode` | `atc_code` | `String` | `VARCHAR(10)` | | Cod ATC (clasificare internațională, ex: `N02BE01`) |
+| 5 | `name` | `name` | `String` | `VARCHAR(300)` | NOT NULL | Denumire comercială |
+| 6 | `activeSubstance` | `active_substance` | `String` | `VARCHAR(300)` | | Substanța activă (ex: Paracetamol) |
+| 7 | `manufacturer` | `manufacturer` | `String` | `VARCHAR(200)` | | Producător |
+| 8 | `dosage` | `dosage` | `String` | `VARCHAR(50)` | | "500mg", "10mg/ml" |
+| 9 | `form` | `form` | `MedForm` (Enum) | `VARCHAR(30)` | | `TABLET`, `CAPSULE`, `SYRUP`, `CREAM`, `INJECTION`, `DROPS`, `SPRAY`, `OTHER` |
+| 10 | `prescriptionRequired` | `prescription_required` | `Boolean` | `BOOLEAN` | NOT NULL, default `false` | Cu/fără rețetă |
+| 11 | `description` | `description` | `String` | `TEXT` | | Prospect / descriere |
+| 12 | `category` | `category` | `String` | `VARCHAR(100)` | | Categoria (ex: "Antibiotic", "Analgezic") |
+| 13 | `imageUrl` | `image_url` | `String` | `VARCHAR(500)` | | URL poză produs |
+| 14 | `createdAt` | `created_at` | `LocalDateTime` | `TIMESTAMP` | NOT NULL | |
+| 15 | `updatedAt` | `updated_at` | `LocalDateTime` | `TIMESTAMP` | NOT NULL | |
 
 **Relații:**
 - `medStocks` → `@OneToMany(mappedBy = "medication")` — stocurile din diverse locații
@@ -244,14 +246,15 @@ O singură tabelă `users` cu o coloană discriminator (`dtype` sau `role`). Câ
 | 1 | `id` | `id` | `Long` | `BIGINT` | PK, AUTO_INCREMENT | |
 | 2 | `orderNumber` | `order_number` | `String` | `VARCHAR(30)` | UNIQUE, NOT NULL | Human-readable (ex: `ORD-20260615-0042`) |
 | 3 | `status` | `status` | `OrderStatus` (Enum) | `VARCHAR(25)` | NOT NULL | Starea comenzii (vezi enum mai jos) |
-| 4 | `totalPrice` | `total_price` | `BigDecimal` | `DECIMAL(10,2)` | NOT NULL | Sumă totală |
-| 5 | `notes` | `notes` | `String` | `TEXT` | | Note client (ex: "Rog confirmare telefonică") |
-| 6 | `rejectionReason` | `rejection_reason` | `String` | `VARCHAR(500)` | | Motiv respingere (dacă e cazul) |
-| 7 | `estimatedPickupTime` | `estimated_pickup_time` | `LocalDateTime` | `TIMESTAMP` | | Ora estimată de ridicare |
-| 8 | `pickedUpAt` | `picked_up_at` | `LocalDateTime` | `TIMESTAMP` | | Când a fost ridicată efectiv |
-| 9 | `expiresAt` | `expires_at` | `LocalDateTime` | `TIMESTAMP` | | Deadline ridicare (după care se anulează) |
-| 10 | `createdAt` | `created_at` | `LocalDateTime` | `TIMESTAMP` | NOT NULL | |
-| 11 | `updatedAt` | `updated_at` | `LocalDateTime` | `TIMESTAMP` | NOT NULL | |
+| 4 | `totalPrice` | `total_price` | `BigDecimal` | `DECIMAL(10,2)` | NOT NULL | Sumă totală (medicamente) |
+| 5 | `holdingFee` | `holding_fee` | `BigDecimal` | `DECIMAL(10,2)` | NOT NULL, default `0.00` | Taxă de rezervare. `0` dacă ≤ 2h, calculată automat dacă rezervă mai mult |
+| 6 | `notes` | `notes` | `String` | `TEXT` | | Note client (ex: "Rog confirmare telefonică") |
+| 7 | `rejectionReason` | `rejection_reason` | `String` | `VARCHAR(500)` | | Motiv respingere (dacă e cazul) |
+| 8 | `estimatedPickupTime` | `estimated_pickup_time` | `LocalDateTime` | `TIMESTAMP` | | Ora estimată de ridicare |
+| 9 | `pickedUpAt` | `picked_up_at` | `LocalDateTime` | `TIMESTAMP` | | Când a fost ridicată efectiv |
+| 10 | `expiresAt` | `expires_at` | `LocalDateTime` | `TIMESTAMP` | | Deadline ridicare (după care se anulează) |
+| 11 | `createdAt` | `created_at` | `LocalDateTime` | `TIMESTAMP` | NOT NULL | |
+| 12 | `updatedAt` | `updated_at` | `LocalDateTime` | `TIMESTAMP` | NOT NULL | |
 
 **Relații:**
 - `client` → `@ManyToOne` → FK `client_id` → `User` — clientul care a plasat comanda
@@ -321,6 +324,12 @@ O singură tabelă `users` cu o coloană discriminator (`dtype` sau `role`). Câ
 **Relații:**
 - `pharmacy` → `@ManyToOne` → FK `pharmacy_id` → `Pharmacy`
 - `triggeredBy` → `@ManyToOne` → FK `triggered_by_id` → `User`
+
+**Strategie de sync (service layer, nu entitate):**
+- **Manual (on init):** Import inițial din CSV/Excel ANMDMR — se rulează o dată dacă DB-ul nu e pre-populat
+- **Automat (cronjob):** Spring `@Scheduled` care rulează periodic (ex: zilnic) și importă delta-ul de stocuri de la farmacii
+- **Manual (admin):** Endpoint REST pentru sync manual, declanșat din admin panel
+- Fiecare execuție (manuală sau automată) creează un rând în `sync_logs` pentru audit
 
 ---
 
