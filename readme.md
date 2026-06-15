@@ -15,7 +15,10 @@
 ## Reference Links
 * [Dr. Max - Enterogermina Forte](https://www.drmax.ro/enterogermina-forte-suspensie-orala-10-flacoane-sanofi)
 * [Compari.ro - ASUS ROG Strix OLED](https://www.compari.ro/monitoare-c3126/asus/rog-strix-oled-xg27aqwmg-p1272818941/)
-* [OpenFreeMap](https://openfreemap.org/)
+  Mama asta chiar imi place tare
+  <img width="1189" height="420" alt="Screenshot 2026-06-15 at 20 10 43" src="https://github.com/user-attachments/assets/ba9e8eb0-1654-4abd-a91f-516b0b6bb7c5" />
+
+* [OpenFreeMap](https://openfreemap.org/) ooh is asta pentru dat display la GeoJSON ala sciner
 
 ---
 
