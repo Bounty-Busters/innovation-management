@@ -19,7 +19,8 @@
   Mama asta chiar imi place tare
   <img width="1189" height="420" alt="Screenshot 2026-06-15 at 20 10 43" src="https://github.com/user-attachments/assets/ba9e8eb0-1654-4abd-a91f-516b0b6bb7c5" />
 
-- [OpenFreeMap](https://openfreemap.org/) ooh is asta pentru dat display la GeoJSON ala sciner
+- [OpenFreeMap](https://openfreemap.org/) ooh is asta pentru dat display la GeoJSON ala sciner,
+  [https://wiki.openstreetmap.org/wiki/GeoJSON]
 
 ---
 
