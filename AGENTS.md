@@ -25,3 +25,4 @@ Try to put as many of your agent-specific artifacts right into this repo, tracke
 Since no public, live hosted SQL database with EAN codes is directly connectable:
 
 - **Importer Connector:** We will implement an import module to load pharmacy inventory/medications from structured files (CSV/Excel format mimicking ANMDMR/CIM schema).
+- Facem asta o data manual, on init, daca nu e deja pre-pulata. Si daca vrem sa simulam un fel de "Baza noastra de date vs baza farmaciilor" mai facem una si avem un cronjob care importeaza delta-u dintr-una in alta or smth idk ce zice backenderu. At this point this aint even really an AGENTS.md anymore lol))
