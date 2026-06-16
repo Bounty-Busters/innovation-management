@@ -11,7 +11,7 @@ COPY src ./src
 # Build the application
 RUN ./gradlew build -x test --no-daemon
 
-FROM eclipse-temurin:17-jre-alpine
+FROM eclipse-temurin:17-jre-jammy
 WORKDIR /app
 # Copy the built artifact (works for .jar or .war if Spring Boot executable)
 COPY --from=build /app/build/libs/*-SNAPSHOT.* app.jar
