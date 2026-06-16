@@ -56,6 +56,16 @@ public class UserService {
                     .role(Role.PHARMACIST)
                     .enabled(true)
                     .build();
+        } else if (role == Role.CLIENT) {
+            user = Client.builder()
+                    .email(request.getEmail())
+                    .password(passwordEncoder.encode(request.getPassword()))
+                    .firstName(request.getFirstName())
+                    .lastName(request.getLastName())
+                    .phone(request.getPhone())
+                    .role(Role.CLIENT)
+                    .enabled(true)
+                    .build();
         } else {
             throw new IllegalArgumentException("Invalid role for registration");
         }

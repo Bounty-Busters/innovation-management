@@ -77,6 +77,7 @@
                 <div class="mb-3">
                     <label for="role" class="form-label">I want to register as:</label>
                     <select class="form-select" th:field="*{role}" id="roleSelect" th:classappend="${#fields.hasErrors('role')} ? 'is-invalid'">
+                        <option value="CLIENT">Client (Storefront User)</option>
                         <option value="PHARM_OWNER">Pharmacy Owner</option>
                         <option value="PHARMACIST">Pharmacist</option>
                     </select>

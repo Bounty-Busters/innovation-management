@@ -22,6 +22,7 @@ public class SecurityConfig {
                 .requestMatchers("/auth/**").permitAll()
                 .requestMatchers("/css/**", "/js/**", "/images/**").permitAll()
                 .requestMatchers("/h2-console/**").permitAll()
+                .requestMatchers("/", "/m/**", "/api/nearby", "/api/reserve").permitAll()
                 .requestMatchers("/api/client/**").hasAuthority("CLIENT")
                 .requestMatchers("/admin/**").authenticated()
                 .anyRequest().authenticated()
