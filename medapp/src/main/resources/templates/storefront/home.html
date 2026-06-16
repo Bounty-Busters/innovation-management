@@ -12,6 +12,9 @@
     <section class="mf-home-hero">
         <div id="home-map" class="mf-map-container"></div>
         <div class="mf-hero-overlay">
+            <button id="recenter-btn" class="mf-btn mf-btn-primary" style="padding: 8px 12px; margin-right: 12px; display: none;" title="Recenter to my location">
+                <i class="bi bi-crosshair"></i>
+            </button>
             <div class="mf-pulse-dot"></div>
             <span id="location-status" style="font-weight: 500;">Locating pharmacies near you...</span>
         </div>
@@ -19,7 +22,7 @@
 
     <!-- Main Content -->
     <div class="mf-container">
-        <h2 class="mf-section-title">Available in a 1km Radius</h2>
+        <h2 class="mf-section-title">Available in a 10km Radius</h2>
         
         <div id="nearby-meds-grid" class="mf-grid">
             <!-- Populated via Javascript -->
@@ -34,9 +37,9 @@
         document.addEventListener("DOMContentLoaded", function() {
             // 1. Initialize Map (Default: Bucharest Center)
             const map = L.map('home-map', { zoomControl: false }).setView([44.4268, 26.1025], 13);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
                 maxZoom: 19,
-                attribution: '© OpenStreetMap'
+                attribution: '© OpenStreetMap, © CartoDB'
             }).addTo(map);
 
             const statusEl = document.getElementById('location-status');
@@ -51,46 +54,55 @@
             });
 
             // 3. Geolocation
+            let userLat = 44.4268;
+            let userLng = 26.1025;
+            const recenterBtn = document.getElementById('recenter-btn');
+
             if ("geolocation" in navigator) {
                 navigator.geolocation.getCurrentPosition(
                     position => {
-                        const lat = position.coords.latitude;
-                        const lng = position.coords.longitude;
+                        userLat = position.coords.latitude;
+                        userLng = position.coords.longitude;
                         
-                        map.setView([lat, lng], 14);
+                        map.setView([userLat, userLng], 14);
                         statusEl.innerText = "Showing pharmacies near your exact location";
+                        recenterBtn.style.display = 'block';
                         
                         // User marker
-                        L.circleMarker([lat, lng], {
+                        L.circleMarker([userLat, userLng], {
                             radius: 8,
-                            fillColor: "#7B2CBF",
+                            fillColor: "var(--clr-secondary)",
                             color: "#fff",
                             weight: 2,
                             opacity: 1,
                             fillOpacity: 0.8
                         }).addTo(map).bindPopup("You are here");
 
-                        fetchNearbyStocks(lat, lng);
+                        fetchNearbyStocks(userLat, userLng);
                     },
                     error => {
                         console.warn("Geolocation denied or failed", error);
                         statusEl.innerText = "Approximate location used (Bucharest Default)";
                         // Fallback to default
-                        fetchNearbyStocks(44.4268, 26.1025);
+                        fetchNearbyStocks(userLat, userLng);
                     }
                 );
             } else {
                 statusEl.innerText = "Approximate location used (Bucharest Default)";
-                fetchNearbyStocks(44.4268, 26.1025);
+                fetchNearbyStocks(userLat, userLng);
             }
 
+            recenterBtn.addEventListener('click', () => {
+                map.setView([userLat, userLng], 14);
+            });
+
             function fetchNearbyStocks(lat, lng) {
-                fetch(`/api/nearby?lat=${lat}&lng=${lng}&radiusKm=1.0`)
+                fetch(`/api/nearby?lat=${lat}&lng=${lng}&radiusKm=10.0`)
                     .then(res => res.json())
                     .then(data => {
                         gridEl.innerHTML = ''; // clear loading
                         if (data.length === 0) {
-                            gridEl.innerHTML = '<p>No medications found within 1km.</p>';
+                            gridEl.innerHTML = '<p>No medications found within 10km.</p>';
                             return;
                         }
 

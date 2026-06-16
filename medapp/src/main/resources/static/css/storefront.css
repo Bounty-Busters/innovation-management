@@ -4,18 +4,18 @@
 
 /* ── 1. Tokens ───────────────────────────────────────────────────────────── */
 :root {
-    /* Palette: Space Dark with Neon Cyan & Orchid */
-    --clr-bg: #0A0A0B;
-    --clr-surface: rgba(25, 25, 28, 0.6);
-    --clr-surface-hover: rgba(40, 40, 45, 0.8);
-    --clr-border: rgba(255, 255, 255, 0.08);
+    /* Palette: Tokyo Night Theme */
+    --clr-bg: #1a1b26;
+    --clr-surface: rgba(36, 40, 59, 0.8);
+    --clr-surface-hover: rgba(65, 72, 104, 0.8);
+    --clr-border: rgba(192, 202, 245, 0.1);
     
-    --clr-accent: #00F0FF;
-    --clr-accent-dim: rgba(0, 240, 255, 0.15);
-    --clr-secondary: #7B2CBF;
+    --clr-accent: #7dcfff;
+    --clr-accent-dim: rgba(125, 207, 255, 0.15);
+    --clr-secondary: #bb9af7;
     
-    --clr-text: #F4F4F6;
-    --clr-text-muted: #8E8E93;
+    --clr-text: #c0caf5;
+    --clr-text-muted: #565f89;
     
     /* Typography */
     --font-display: 'Outfit', sans-serif;
@@ -200,9 +200,6 @@ a {
 /* Leaflet Dark Theme Overrides */
 .leaflet-container {
     background: var(--clr-bg) !important;
-}
-.leaflet-tile {
-    filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
 }
 
 .mf-hero-overlay {
