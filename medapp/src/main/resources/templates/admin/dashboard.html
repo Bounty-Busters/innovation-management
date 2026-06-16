@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/admin}">
+<head>
+    <title>Dashboard</title>
+</head>
+<body>
+
+<div layout:fragment="page-title">Dashboard</div>
+
+<div layout:fragment="content">
+    
+    <div class="row mb-4">
+        <div class="col-xl-3 col-sm-6 mb-xl-0 mb-4">
+            <div class="card card-stats shadow-sm border-0 h-100">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-8">
+                            <p class="text-sm mb-0 text-capitalize font-weight-bold" th:text="${stats.label1}">Label 1</p>
+                            <h5 class="font-weight-bolder mb-0" th:text="${stats.value1}">0</h5>
+                        </div>
+                        <div class="col-4 text-end">
+                            <div class="icon icon-shape bg-primary shadow text-center rounded-circle p-2 text-white d-inline-block">
+                                <i class="bi bi-people-fill fs-4"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-sm-6 mb-xl-0 mb-4">
+            <div class="card card-stats shadow-sm border-0 h-100">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-8">
+                            <p class="text-sm mb-0 text-capitalize font-weight-bold" th:text="${stats.label2}">Label 2</p>
+                            <h5 class="font-weight-bolder mb-0" th:text="${stats.value2}">0</h5>
+                        </div>
+                        <div class="col-4 text-end">
+                            <div class="icon icon-shape bg-success shadow text-center rounded-circle p-2 text-white d-inline-block">
+                                <i class="bi bi-hospital-fill fs-4"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-sm-6 mb-xl-0 mb-4">
+            <div class="card card-stats shadow-sm border-0 h-100">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-8">
+                            <p class="text-sm mb-0 text-capitalize font-weight-bold" th:text="${stats.label3}">Label 3</p>
+                            <h5 class="font-weight-bolder mb-0" th:text="${stats.value3}">0</h5>
+                        </div>
+                        <div class="col-4 text-end">
+                            <div class="icon icon-shape bg-warning shadow text-center rounded-circle p-2 text-white d-inline-block">
+                                <i class="bi bi-capsule fs-4"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-sm-6">
+            <div class="card card-stats shadow-sm border-0 h-100">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-8">
+                            <p class="text-sm mb-0 text-capitalize font-weight-bold" th:text="${stats.label4}">Label 4</p>
+                            <h5 class="font-weight-bolder mb-0" th:text="${stats.value4}">0</h5>
+                        </div>
+                        <div class="col-4 text-end">
+                            <div class="icon icon-shape bg-info shadow text-center rounded-circle p-2 text-white d-inline-block">
+                                <i class="bi bi-cart-check-fill fs-4"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-white pb-0">
+                    <h6>Welcome to MedFinder Admin Panel</h6>
+                </div>
+                <div class="card-body">
+                    <p>Logged in as: <span th:text="${currentUser.firstName + ' ' + currentUser.lastName}">Name</span> (<span th:text="${currentRole}">ROLE</span>)</p>
+                    <p>Select an option from the sidebar to begin.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>
