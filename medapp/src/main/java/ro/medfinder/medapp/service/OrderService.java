@@ -13,6 +13,7 @@ import ro.medfinder.medapp.entity.enums.Role;
 import ro.medfinder.medapp.repository.ClientRepository;
 import ro.medfinder.medapp.repository.MedStockRepository;
 import ro.medfinder.medapp.repository.OrderRepository;
+import ro.medfinder.medapp.service.ClientOrderService;
 
 import java.time.LocalDateTime;
 import java.util.Map;
@@ -30,6 +31,7 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final MedStockRepository medStockRepository;
     private final ClientRepository clientRepository;
+    private final ClientOrderService clientOrderService;
 
     /** Valid status transitions per the state machine. */
     private static final Map<OrderStatus, Set<OrderStatus>> VALID_TRANSITIONS = Map.of(
@@ -93,6 +95,11 @@ public class OrderService {
             handleRejected(order);
         }
 
+        // ── CANCELLED (de farmacist): restaurare stoc + perk ────
+        if (newStatus == OrderStatus.CANCELLED) {
+            handleCancelled(order);
+        }
+
         if (newStatus == OrderStatus.PICKED_UP) {
             order.setPickedUpAt(LocalDateTime.now());
         }
@@ -143,6 +150,28 @@ public class OrderService {
             client.setFreeLongReservationsLeft(client.getFreeLongReservationsLeft() + 1);
             clientRepository.save(client);
             log.info("Restored free perk for client {} after rejection — now has {}",
+                    client.getId(), client.getFreeLongReservationsLeft());
+        }
+    }
+
+    /**
+     * La CANCELLED de farmacist: dacă comanda era ACCEPTED/READY_FOR_PICKUP,
+     * restaurează stocul. Dacă s-a folosit un perk gratuit, îl returnează.
+     */
+    private void handleCancelled(Order order) {
+        // Restaurare stoc doar dacă a fost scăzut (ACCEPTED sau READY_FOR_PICKUP)
+        if (order.getStatus() == OrderStatus.ACCEPTED
+                || order.getStatus() == OrderStatus.READY_FOR_PICKUP) {
+            clientOrderService.restoreStock(order);
+            log.info("Stock restored for cancelled order {}", order.getOrderNumber());
+        }
+
+        // Restaurare perk gratuit
+        if (Boolean.TRUE.equals(order.getUsedFreePerk())) {
+            Client client = order.getClient();
+            client.setFreeLongReservationsLeft(client.getFreeLongReservationsLeft() + 1);
+            clientRepository.save(client);
+            log.info("Restored free perk for client {} after pharmacist cancel — now has {}",
                     client.getId(), client.getFreeLongReservationsLeft());
         }
     }

@@ -1,84 +1,84 @@
-# 🔄 Flow și Rute API: Click & Collect
+# 🔄 Flow și Rute API: Click & Collect (Actualizat)
 
-Acest document descrie logica de business, fluxurile aplicației și rutele REST pentru funcționalitatea de Click & Collect din aplicația MedFinder.
+Acest document descrie logica de business, fluxurile aplicației și rutele REST pentru funcționalitatea de Click & Collect din aplicația MedFinder, incluzând regulile pentru stocuri, limite per utilizator și expirare.
+
+---
 
 ## 📌 Reguli de Business (Business Rules)
 
-1. **Calcul Preț (Holding Fee):**
-   - ≤ 2 ore: **Gratuit (0 RON)**.
-   - Între 3h și 24h: Prețul crește liniar de la 1 RON (pentru 3h) la 7 RON (pentru 24h).
-   - *Formula:* Prețul exact calculat ca `1 + (ore - 3) * (6 / 21)`, rotunjit la cel mai apropiat multiplu de 0.25 (adică restul după virgulă să fie .00, .25, .50 sau .75). Exemplu în Java: `Math.round(rawPrice * 4) / 4.0`.
-   - *Perk Client:* Fiecare client primește **3 rezervări gratuite de până la 5 ore** la crearea contului (`freeLongReservationsLeft = 3`).
+### 1. Limite și Restricții pentru Clienți
+- **Limită zilnică pe produs:** Un utilizator poate rezerva același medicament la aceeași locație **o singură dată pe zi** (dacă are deja o comandă `PENDING`, `ACCEPTED`, `READY_FOR_PICKUP`, `PICKED_UP` sau `EXPIRED`). Asta înseamnă că dacă nu ridică o comandă și expiră, nu mai poate rezerva același produs acolo în aceeași zi, pentru a preveni abuzurile.
+- **Limită maximă comenzi PENDING:** Un utilizator poate avea **maximum 10 comenzi în stadiul `PENDING`** simultan pe tot contul său. La încercarea de a plasa a 11-a comandă, sistemul va arunca eroare și va cere anularea uneia existente.
 
-2. **Gestiunea Stocului (`MedStock`):**
-   - Stocul scade (este blocat fizic) **doar atunci când farmacistul acceptă comanda** (`status == ACCEPTED`).
-   - *Restaurare stoc:* Dacă o comandă anterior acceptată este anulată de client (`CANCELLED`) sau expiră (`EXPIRED`), stocul trebuie returnat locației.
+### 2. Calcul Preț (Holding Fee) & Avantaje (Perks)
+- **Primele 2 ore:** Gratuit (0 RON).
+- **Între 3h și 24h:** Prețul crește liniar de la 1 RON (pentru 3h) la 7 RON (pentru 24h). Formula: `1 + (ore - 3) * (6 / 21)`, rotunjit la cel mai apropiat multiplu de 0.25 (ex: 1.25, 1.50).
+- **Perk-ul Gratuității (Max 3 ore):** Fiecare client primește **3 rezervări gratuite de până la 3 ore** la crearea contului (`freeLongReservationsLeft = 3`). Dacă rezervarea este de max 3 ore și mai are perk-uri, taxa devine 0 RON și se scade un perk din cont. Dacă alege peste 3 ore, se va calcula taxa direct.
 
-3. **Limită zilnică (Anti-Spam / Anti-Hoarding):**
-   - Un utilizator poate rezerva același medicament la aceeași locație **o singură dată pe zi**.
-   - Această limită se aplică doar dacă există deja o rezervare `PENDING`, `ACCEPTED`, `READY_FOR_PICKUP` sau `PICKED_UP`.
-   - Comenzile `REJECTED`, `CANCELLED` sau `EXPIRED` nu blochează o nouă încercare.
+### 3. Gestiunea Stocului (`MedStock`)
+- **Faza PENDING:** Stocul **NU scade**. Aplicația doar verifică vizual dacă există stoc disponibil. *(Atenție: Se poate suprascrie/rezerva același produs de mai mulți clienți până când farmacistul aprobă)*.
+- **Faza ACCEPTED:** Stocul **SCADE fizic** în sistem.
+- **Restaurare stoc (Undo):** Dacă o comandă anterior acceptată este anulată (indiferent dacă o anulează clientul sau farmacistul din panou) sau dacă expiră (`EXPIRED`), stocul este returnat.
 
-4. **Timp de rezervare și Expirare:**
-   - Timpul rezervării începe să curgă din momentul în care comanda este `ACCEPTED` (nu din momentul plasării cererii).
-   - Un **Cronjob** care rulează din 5 în 5 minute verifică comenzile `ACCEPTED` sau `READY_FOR_PICKUP`. Dacă `acceptedAt + reservationHours < NOW`, comanda trece automat în `EXPIRED`, iar stocul este refăcut.
+### 4. Timpi de Răspuns și Expirare (Cronjobs)
+- **Timp PENDING (Auto-Reject):** O comandă lăsată pe `PENDING` de farmacist mai mult de **30 de minute** este respinsă automat (Trece în `REJECTED`). Motivul salvat: "Pharmacy did not respond within 30 minutes". Perk-ul (dacă a fost folosit) este returnat clientului.
+- **Timp ACCEPTED (Expirare Ridicare):** Timpul de rezervare (ex: 2 ore) începe să curgă din momentul în care comanda devine `ACCEPTED`. Un Cronjob verifică comenzile `ACCEPTED/READY_FOR_PICKUP`. Dacă `acceptedAt + reservationHours < NOW`, comanda trece automat în `EXPIRED` (stocul se întoarce).
 
 ---
 
 ## 🚦 Mașina de Stări (State Machine) pentru Comenzi
 
-* **`PENDING`** - Clientul a plasat cererea (stocul încă NU a scăzut).
-* **`ACCEPTED`** - Farmacistul a acceptat cererea (stocul SCADE, timer-ul de rezervare PORNEȘTE).
-* **`REJECTED`** - Farmacistul refuză cererea (lipsă fizică de stoc etc. Perk-ul gratuit se dă înapoi dacă a fost folosit).
-* **`READY_FOR_PICKUP`** - Produsul a fost pus deoparte.
-* **`PICKED_UP`** - Clientul a luat produsul fizic din farmacie.
-* **`CANCELLED`** - Clientul s-a răzgândit (stocul este restaurat dacă a fost scăzut, perk-ul se dă înapoi).
-* **`EXPIRED`** - Cronjob-ul o închide pentru că timpul de rezervare s-a scurs (stocul este restaurat).
+Flow-ul de viață al unei rezervări (Order):
+
+1. **`PENDING`** - Clientul a plasat cererea.
+   - *Stoc:* Neschimbat. 
+   - *Tranziții posibile:*
+     - 👉 `ACCEPTED` (de către farmacist, dacă are stoc fizic).
+     - 👉 `REJECTED` (de către farmacist SAU automat de cronjob la 30 min. Perk returnat).
+     - 👉 `CANCELLED` (de către client. Perk returnat).
+
+2. **`ACCEPTED`** - Farmacistul a aprobat cererea.
+   - *Stoc:* Scade. 
+   - *Timp:* Pornește cronometrul rezervării (ex: are 3 ore să o ridice).
+   - *Tranziții posibile:*
+     - 👉 `READY_FOR_PICKUP` (marcată de farmacist).
+     - 👉 `EXPIRED` (cronjob dacă timpul a trecut. Stoc returnat).
+     - 👉 `CANCELLED` (anulată de client SAU de farmacist ca 'undo'. Stoc returnat. Perk returnat).
+
+3. **`READY_FOR_PICKUP`** - Punga este pregătită (stadiu opțional).
+   - *Stoc:* Rămâne scăzut.
+   - *Tranziții posibile:*
+     - 👉 `PICKED_UP` (Clientul a ridicat-o).
+     - 👉 `EXPIRED` (Timpul a trecut. Stoc returnat).
+     - 👉 `CANCELLED` (Stoc returnat. Perk returnat).
+
+4. **Stări Finale (Terminale):**
+   - **`PICKED_UP`**: Clientul a plătit și luat medicamentul fizic din farmacie.
+   - **`REJECTED`**: Cererea inițială a fost refuzată.
+   - **`CANCELLED`**: Comanda a fost anulată (undo).
+   - **`EXPIRED`**: Comanda nu a fost ridicată în timpul alocat de rezervare.
 
 ---
 
-## 🛣️ Rute API (Endpoints) pentru Client (Frontend)
-
-Toate rutele de client necesită utilizator autentificat cu rolul `CLIENT`.
+## 🛣️ Rute API (Endpoints) Backend
 
 ### 1. Creare Comandă (Rezervare)
 **`POST /api/client/orders`**
-- **Payload (JSON):**
-  ```json
-  {
-    "medicationId": 123,
-    "locationId": 45,
-    "quantity": 1,
-    "reservationHours": 4
-  }
-  ```
-- **Proces:**
-  1. Validează dacă clientul mai are voie să facă această comandă (limita de 1/zi pe EAN+Locație activă).
-  2. Calculează `holdingFee` (aplică gratuitatea de 5h scăzând `freeLongReservationsLeft` dacă este cazul, altfel calculează după formulă).
-  3. Calculează `totalPrice` = `(medStock.price * quantity) + holdingFee`.
-  4. Salvează `Order` cu status `PENDING`. **Nu** modifică `MedStock`.
+- Validează limita de 1/zi pe același medicament + limita globală de 3 comenzi `PENDING`.
+- Calculează taxa / aplică perk-ul pentru 3h.
+- Salvează ca `PENDING`.
 
 ### 2. Anulare Comandă de către Client
 **`PUT /api/client/orders/{orderId}/cancel`**
-- **Proces:**
-  1. Dacă statusul era `ACCEPTED` sau `READY_FOR_PICKUP`, returnează produsele în `MedStock`.
-  2. Dacă s-a folosit o rezervare lungă gratuită (`holdingFee` a fost 0 deși `hours` > 2), incrementează la loc `freeLongReservationsLeft` al clientului.
-  3. Status devine `CANCELLED`.
+- Dacă statusul era `ACCEPTED` / `READY_FOR_PICKUP`, returnează produsele în stoc.
+- Returnează perk-ul. Status devine `CANCELLED`.
 
-### 3. Listarea comenzilor proprii
-**`GET /api/client/orders`**
-- Returnează comenzile clientului logat, ordonate descrescător după dată.
+### 3. Modificare Status de către Farmacist (Admin)
+**`POST /admin/orders/{id}/status`**
+- Farmacistul dă Accept, Reject, sau Cancel.
+- *La Cancel pe o comandă ACCEPTED*: Backend-ul este obligat să apeleze returnarea de stoc și de perk-uri (undo).
 
----
-
-## ⚙️ Cronjob (Background Task)
-
-- **Clasa:** `OrderExpirationScheduler`
-- **Timp:** `@Scheduled(cron = "0 0/5 * * * *")` (la fiecare 5 minute).
-- **Proces:**
-  Caută comenzile unde:
-  `status` IN (`ACCEPTED`, `READY_FOR_PICKUP`)
-  ȘI `acceptedAt` + `reservationHours` < NOW.
-  Pentru fiecare:
-  1. Status = `EXPIRED`.
-  2. Returnează cantitatea înapoi în `MedStock`.
+### 4. Background Tasks (Scheduler)
+- **`OrderExpirationScheduler` (rulare la fiecare 5 minute):**
+  - Găsește comenzile `ACCEPTED` sau `READY_FOR_PICKUP` unde timpul de ridicare a fost depășit și le trece în `EXPIRED` (cu returnarea stocului).
+  - Găsește comenzile `PENDING` mai vechi de 30 minute și le trece automat în `REJECTED` (cu returnarea perk-ului).

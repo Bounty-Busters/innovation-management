@@ -14,7 +14,7 @@ import java.math.RoundingMode;
  * - ≤ 2h: gratuit (0 RON)
  * - 3h–24h: creștere liniară de la 1 RON la 7 RON
  *   Formula: 1 + (ore - 3) * (6 / 21), rotunjit la cel mai apropiat 0.25
- * - Perk gratuit: dacă 3–5h și client.freeLongReservationsLeft > 0,
+ * - Perk gratuit: dacă exact 3h și client.freeLongReservationsLeft > 0,
  *   se consumă o gratuitate și taxa = 0
  */
 @Service
@@ -43,8 +43,8 @@ public class HoldingFeeCalculator {
             return new HoldingFeeResult(BigDecimal.ZERO, false);
         }
 
-        // 3–5h cu perk gratuit disponibil
-        if (hours <= 5 && client.getFreeLongReservationsLeft() != null
+        // Exact 3h cu perk gratuit disponibil
+        if (hours <= 3 && client.getFreeLongReservationsLeft() != null
                 && client.getFreeLongReservationsLeft() > 0) {
             client.setFreeLongReservationsLeft(client.getFreeLongReservationsLeft() - 1);
             return new HoldingFeeResult(BigDecimal.ZERO, true);
