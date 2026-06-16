@@ -378,7 +378,7 @@ public class DataLoader implements CommandLineRunner {
         medStockRepository.save(stock);
     }
 
-    private Order createOrder(String orderNumber, User client, Location pickupLocation,
+    private Order createOrder(String orderNumber, Client client, Location pickupLocation,
                               OrderStatus status, BigDecimal totalPrice, LocalDateTime createdAt) {
         Order order = Order.builder()
                 .orderNumber(orderNumber)
