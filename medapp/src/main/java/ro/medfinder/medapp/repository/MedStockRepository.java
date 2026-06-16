@@ -27,7 +27,7 @@ public interface MedStockRepository extends JpaRepository<MedStock, Long> {
     List<MedStock> findByMedicationEanAndQuantityGreaterThan(String ean, int quantity);
 
     // Storefront: approximate bounding box for nearby medications
-    @Query("SELECT m FROM MedStock m WHERE m.quantity > 0 AND m.location.latitude BETWEEN :minLat AND :maxLat AND m.location.longitude BETWEEN :minLon AND :maxLon ORDER BY m.lastSyncedAt DESC")
+    @Query("SELECT m FROM MedStock m WHERE m.quantity > 0 AND m.location.latitude BETWEEN :minLat AND :maxLat AND m.location.longitude BETWEEN :minLon AND :maxLon ORDER BY m.id DESC")
     List<MedStock> findNearbyInStockOrderByLastSyncedDesc(
             @Param("minLat") Double minLat,
             @Param("maxLat") Double maxLat,

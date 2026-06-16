@@ -201,6 +201,9 @@ a {
 .leaflet-container {
     background: var(--clr-bg) !important;
 }
+.leaflet-tile {
+    filter: brightness(1.8) contrast(0.85); /* Brighten the CartoDB dark tiles to make streets visible */
+}
 
 .mf-hero-overlay {
     position: absolute;
