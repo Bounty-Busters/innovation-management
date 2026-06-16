@@ -78,7 +78,7 @@ public class StorefrontController {
                         .activeSubstance(stock.getMedication().getActiveSubstance())
                         .dosage(stock.getMedication().getDosage())
                         .prescriptionRequired(stock.getMedication().getPrescriptionRequired())
-                        .form(stock.getMedication().getForm())
+                        .form(stock.getMedication().getForm() != null ? stock.getMedication().getForm().name() : null)
                         .build())
                 .location(ro.medfinder.medapp.dto.NearbyStockDto.LocationDto.builder()
                         .name(stock.getLocation().getName())

@@ -45,7 +45,7 @@ public class NotificationEventListener {
                 .type(NotificationType.IN_APP) 
                 .subject(subject)
                 .message(message)
-                .status(NotificationStatus.UNREAD)
+                .status(NotificationStatus.SENT)
                 .targetAddress(order.getClient().getEmail())
                 .recipient(order.getClient())
                 .relatedOrder(order)

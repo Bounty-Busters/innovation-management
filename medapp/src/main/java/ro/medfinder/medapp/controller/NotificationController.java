@@ -33,7 +33,7 @@ public class NotificationController {
                 .orElseThrow(() -> new RuntimeException("No clients found"));
 
         List<Notification> unread = notificationRepository
-                .findByRecipientIdAndStatusOrderByCreatedAtDesc(client.getId(), NotificationStatus.UNREAD);
+                .findByRecipientIdAndStatusOrderByCreatedAtDesc(client.getId(), NotificationStatus.SENT);
 
         List<NotificationDto> dtos = unread.stream().map(n -> NotificationDto.builder()
                 .id(n.getId())
