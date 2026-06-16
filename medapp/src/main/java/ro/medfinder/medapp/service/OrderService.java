@@ -1,27 +1,35 @@
 package ro.medfinder.medapp.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ro.medfinder.medapp.dto.OrderStatusUpdate;
-import ro.medfinder.medapp.entity.Order;
-import ro.medfinder.medapp.entity.Pharmacist;
-import ro.medfinder.medapp.entity.User;
+import ro.medfinder.medapp.entity.*;
 import ro.medfinder.medapp.entity.enums.OrderStatus;
 import ro.medfinder.medapp.entity.enums.Role;
+import ro.medfinder.medapp.repository.ClientRepository;
+import ro.medfinder.medapp.repository.MedStockRepository;
 import ro.medfinder.medapp.repository.OrderRepository;
 
 import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.Set;
 
+/**
+ * Service pentru gestionarea comenzilor din perspectiva admin/farmacist.
+ * Gestionează tranzițiile de status și efectele lor (stock, perk-uri).
+ */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class OrderService {
 
     private final OrderRepository orderRepository;
+    private final MedStockRepository medStockRepository;
+    private final ClientRepository clientRepository;
 
     /** Valid status transitions per the state machine. */
     private static final Map<OrderStatus, Set<OrderStatus>> VALID_TRANSITIONS = Map.of(
@@ -71,11 +79,18 @@ public class OrderService {
                     "Invalid status transition from " + currentStatus + " to " + newStatus);
         }
 
+        // ── ACCEPTED: scade stocul, setează acceptedAt ──────────
+        if (newStatus == OrderStatus.ACCEPTED) {
+            handleAccepted(order);
+        }
+
+        // ── REJECTED: dă perk-ul înapoi dacă a fost folosit ────
         if (newStatus == OrderStatus.REJECTED) {
             if (update.getRejectionReason() == null || update.getRejectionReason().isBlank()) {
                 throw new IllegalArgumentException("Rejection reason is required");
             }
             order.setRejectionReason(update.getRejectionReason());
+            handleRejected(order);
         }
 
         if (newStatus == OrderStatus.PICKED_UP) {
@@ -84,5 +99,51 @@ public class OrderService {
 
         order.setStatus(newStatus);
         orderRepository.save(order);
+        log.info("Order {} status updated: {} → {}", order.getOrderNumber(), currentStatus, newStatus);
+    }
+
+    // ── Private Helpers ─────────────────────────────────────────
+
+    /**
+     * La ACCEPTED: scade stocul din MedStock pentru fiecare item.
+     * Dacă stocul e insuficient, aruncă excepție (rollback tranzacție).
+     */
+    private void handleAccepted(Order order) {
+        order.setAcceptedAt(LocalDateTime.now());
+
+        for (OrderItem item : order.getItems()) {
+            MedStock medStock = medStockRepository.findByLocationIdAndMedicationId(
+                            order.getPickupLocation().getId(),
+                            item.getMedication().getId())
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            "MedStock not found for medication " + item.getMedication().getId()
+                                    + " at location " + order.getPickupLocation().getId()));
+
+            if (medStock.getQuantity() < item.getQuantity()) {
+                throw new IllegalStateException(
+                        "Insufficient stock for " + item.getMedication().getName()
+                                + ". Available: " + medStock.getQuantity()
+                                + ", requested: " + item.getQuantity());
+            }
+
+            medStock.setQuantity(medStock.getQuantity() - item.getQuantity());
+            medStockRepository.save(medStock);
+            log.info("Stock decreased: medication {} at location {} — {} units",
+                    item.getMedication().getId(), order.getPickupLocation().getId(), item.getQuantity());
+        }
+    }
+
+    /**
+     * La REJECTED din PENDING: dacă s-a folosit un perk gratuit la creare,
+     * îl returnează clientului.
+     */
+    private void handleRejected(Order order) {
+        if (Boolean.TRUE.equals(order.getUsedFreePerk())) {
+            Client client = order.getClient();
+            client.setFreeLongReservationsLeft(client.getFreeLongReservationsLeft() + 1);
+            clientRepository.save(client);
+            log.info("Restored free perk for client {} after rejection — now has {}",
+                    client.getId(), client.getFreeLongReservationsLeft());
+        }
     }
 }

@@ -51,6 +51,17 @@ public class Order extends BaseEntity {
     @Column(name = "estimated_pickup_time")
     private LocalDateTime estimatedPickupTime;
 
+    @Column(name = "reservation_hours")
+    private Integer reservationHours;
+
+    @Column(name = "accepted_at")
+    private LocalDateTime acceptedAt;
+
+    /** True dacă s-a consumat o gratuitate (freeLongReservationsLeft) la crearea comenzii. */
+    @Column(name = "used_free_perk", nullable = false)
+    @Builder.Default
+    private Boolean usedFreePerk = false;
+
     @Column(name = "picked_up_at")
     private LocalDateTime pickedUpAt;
 
@@ -62,7 +73,7 @@ public class Order extends BaseEntity {
     /** Clientul care a plasat comanda. */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "client_id")
-    private User client;
+    private Client client;
 
     /** Locația de unde se ridică comanda. */
     @ManyToOne(fetch = FetchType.LAZY)

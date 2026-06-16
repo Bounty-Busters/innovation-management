@@ -28,6 +28,11 @@ public class Client extends User {
     @Column(name = "city", length = 100)
     private String city;
 
+    /** Număr de rezervări gratuite (3–5h) rămase. Se decrementează la creare comandă, se restaurează la reject/cancel. */
+    @Column(name = "free_long_reservations_left")
+    @Builder.Default
+    private Integer freeLongReservationsLeft = 3;
+
     /** Comenzile plasate de acest client. */
     @OneToMany(mappedBy = "client", fetch = FetchType.LAZY)
     @Builder.Default
