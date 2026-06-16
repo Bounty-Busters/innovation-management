@@ -8,9 +8,10 @@ import org.springframework.web.bind.annotation.*;
 import ro.medfinder.medapp.entity.*;
 import ro.medfinder.medapp.entity.enums.OrderStatus;
 import ro.medfinder.medapp.repository.*;
+import ro.medfinder.medapp.service.ClientOrderService;
 import ro.medfinder.medapp.service.HoldingFeeCalculator;
+import ro.medfinder.medapp.dto.OrderCreateRequest;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -28,6 +29,7 @@ public class StorefrontController {
     private final OrderItemRepository orderItemRepository;
     private final LocationRepository locationRepository;
     private final HoldingFeeCalculator holdingFeeCalculator;
+    private final ClientOrderService clientOrderService;
 
     @GetMapping
     public String home(Model model) {
@@ -51,10 +53,10 @@ public class StorefrontController {
 
     @ResponseBody
     @GetMapping("/api/nearby")
-    public ResponseEntity<List<MedStock>> getNearbyStocks(
+    public ResponseEntity<List<ro.medfinder.medapp.dto.NearbyStockDto>> getNearbyStocks(
             @RequestParam Double lat,
             @RequestParam Double lng,
-            @RequestParam(required = false, defaultValue = "1.0") Double radiusKm) {
+            @RequestParam(required = false, defaultValue = "10.0") Double radiusKm) {
         
         // Rough bounding box for ~1km (1 deg lat ~= 111km, 1 deg lng ~= 111km * cos(lat))
         double latDelta = radiusKm / 111.0;
@@ -66,7 +68,27 @@ public class StorefrontController {
         double maxLon = lng + lngDelta;
 
         List<MedStock> nearby = medStockRepository.findNearbyInStockOrderByLastSyncedDesc(minLat, maxLat, minLon, maxLon);
-        return ResponseEntity.ok(nearby);
+        
+        List<ro.medfinder.medapp.dto.NearbyStockDto> dtos = nearby.stream().map(stock -> ro.medfinder.medapp.dto.NearbyStockDto.builder()
+                .price(stock.getPrice())
+                .quantity(stock.getQuantity())
+                .medication(ro.medfinder.medapp.dto.NearbyStockDto.MedicationDto.builder()
+                        .ean(stock.getMedication().getEan())
+                        .name(stock.getMedication().getName())
+                        .activeSubstance(stock.getMedication().getActiveSubstance())
+                        .dosage(stock.getMedication().getDosage())
+                        .prescriptionRequired(stock.getMedication().getPrescriptionRequired())
+                        .form(stock.getMedication().getForm())
+                        .build())
+                .location(ro.medfinder.medapp.dto.NearbyStockDto.LocationDto.builder()
+                        .name(stock.getLocation().getName())
+                        .address(stock.getLocation().getAddress())
+                        .latitude(stock.getLocation().getLatitude())
+                        .longitude(stock.getLocation().getLongitude())
+                        .build())
+                .build()).toList();
+
+        return ResponseEntity.ok(dtos);
     }
 
     @PostMapping("/api/reserve")
@@ -81,63 +103,17 @@ public class StorefrontController {
         Client client = clientRepository.findAll().stream().findFirst()
                 .orElseThrow(() -> new RuntimeException("No clients found"));
 
-        // 2. Find location and medication
-        Location location = locationRepository.findById(locationId)
-                .orElseThrow(() -> new IllegalArgumentException("Location not found"));
-        Medication medication = medicationRepository.findById(medicationId)
-                .orElseThrow(() -> new IllegalArgumentException("Medication not found"));
+        OrderCreateRequest req = new OrderCreateRequest();
+        req.setLocationId(locationId);
+        req.setMedicationId(medicationId);
+        req.setQuantity(quantity);
+        req.setReservationHours(hours);
 
-        // 3. Check stock
-        MedStock stock = medStockRepository.findByLocationIdAndMedicationId(locationId, medicationId)
-                .orElseThrow(() -> new IllegalArgumentException("Stock not found"));
-
-        if (stock.getQuantity() < quantity) {
-            return ResponseEntity.badRequest().body("Insufficient stock");
+        try {
+            Order order = clientOrderService.createOrder(client, req);
+            return ResponseEntity.ok(order);
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
         }
-
-        // 4. Calculate Holding Fee
-        HoldingFeeCalculator.HoldingFeeResult feeResult = holdingFeeCalculator.calculate(hours, client);
-
-        // Save client if perk was used
-        if (feeResult.usedFreePerk()) {
-            clientRepository.save(client);
-        }
-
-        // 5. Create Order
-        Order order = Order.builder()
-                .orderNumber("ORD-" + System.currentTimeMillis() + "-" + ThreadLocalRandom.current().nextInt(1000, 9999))
-                .client(client)
-                .pickupLocation(location)
-                .status(OrderStatus.PENDING)
-                .totalPrice(feeResult.fee()) // Initially just the fee, we add items next
-                .holdingFee(feeResult.fee())
-                .usedFreePerk(feeResult.usedFreePerk())
-                .createdAt(LocalDateTime.now())
-                .expiresAt(LocalDateTime.now().plusHours(hours))
-                .estimatedPickupTime(LocalDateTime.now().plusHours(hours))
-                .build();
-
-        orderRepository.save(order);
-
-        // 6. Create Order Item
-        BigDecimal subtotal = stock.getPrice().multiply(BigDecimal.valueOf(quantity));
-        OrderItem item = OrderItem.builder()
-                .order(order)
-                .medication(medication)
-                .quantity(quantity)
-                .unitPrice(stock.getPrice())
-                .subtotal(subtotal)
-                .build();
-
-        orderItemRepository.save(item);
-
-        // Update total price (fee + subtotal)
-        order.setTotalPrice(feeResult.fee().add(subtotal));
-        orderRepository.save(order);
-
-        // Note: Stock is NOT decreased yet. State machine logic in OrderService
-        // says ACCEPTED decreases stock. PENDING just waits for pharmacy to accept.
-
-        return ResponseEntity.ok(order);
     }
 }

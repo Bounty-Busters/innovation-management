@@ -32,7 +32,20 @@
                     <input type="text" id="global-search" class="mf-search-input" placeholder="Search medications, EAN, or active ingredients...">
                 </div>
 
-                <div class="mf-nav-actions">
+                <div class="mf-nav-actions" style="display:flex; align-items:center;">
+                    <!-- Notification Bell -->
+                    <div class="mf-bell-wrapper" id="notif-bell">
+                        <i class="bi bi-bell"></i>
+                        <span class="mf-bell-badge" id="notif-badge">0</span>
+                        
+                        <div class="mf-notif-dropdown" id="notif-dropdown">
+                            <div class="mf-notif-header">Notifications</div>
+                            <div id="notif-list">
+                                <div class="mf-notif-item"><div class="mf-notif-body">No unread notifications.</div></div>
+                            </div>
+                        </div>
+                    </div>
+
                     <a href="/login" class="mf-btn mf-btn-outline">Sign In</a>
                 </div>
             </div>
@@ -44,11 +57,150 @@
         <!-- Page specific content will go here -->
     </main>
 
+    <!-- Toast Container -->
+    <div id="mf-toast-container"></div>
+
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     
     <!-- Custom Scripts -->
     <th:block layout:fragment="scripts"></th:block>
 
+    <!-- SockJS and STOMP for Notifications -->
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+    
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const bellWrapper = document.getElementById('notif-bell');
+            const notifBadge = document.getElementById('notif-badge');
+            const notifList = document.getElementById('notif-list');
+            const toastContainer = document.getElementById('mf-toast-container');
+            let unreadCount = 0;
+
+            // Toggle Dropdown
+            bellWrapper.addEventListener('click', function(e) {
+                // Prevent click on items from closing it immediately if we handle it
+                if(e.target.closest('.mf-notif-item')) return;
+                bellWrapper.classList.toggle('active');
+            });
+
+            // Close when clicking outside
+            document.addEventListener('click', function(e) {
+                if (!bellWrapper.contains(e.target)) {
+                    bellWrapper.classList.remove('active');
+                }
+            });
+
+            // 1. Fetch Client ID
+            fetch('/api/notifications/me')
+                .then(res => res.json())
+                .then(clientId => {
+                    if(clientId === -1) return; // No client logged in (mock)
+
+                    // 2. Fetch Unread
+                    fetchUnreadNotifications();
+
+                    // 3. Connect WebSockets
+                    const socket = new SockJS('/ws-notifications');
+                    const stompClient = Stomp.over(socket);
+                    stompClient.debug = null; // Disable debug logs
+
+                    stompClient.connect({}, function (frame) {
+                        stompClient.subscribe('/topic/client/' + clientId, function (message) {
+                            const notif = JSON.parse(message.body);
+                            showToast(notif);
+                            addNotifToList(notif);
+                            updateBadge(1);
+                        });
+                    });
+                });
+
+            function fetchUnreadNotifications() {
+                fetch('/api/notifications/unread')
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.length > 0) {
+                            notifList.innerHTML = '';
+                            unreadCount = data.length;
+                            updateBadge(0); // Just set it
+                            data.forEach(n => addNotifToList(n, false));
+                        }
+                    });
+            }
+
+            function addNotifToList(notif, prepend = true) {
+                if (notifList.innerHTML.includes('No unread')) {
+                    notifList.innerHTML = '';
+                }
+                const div = document.createElement('div');
+                div.className = 'mf-notif-item';
+                div.innerHTML = `
+                    <div class="mf-notif-title">${notif.subject}</div>
+                    <div class="mf-notif-body">${notif.message}</div>
+                `;
+                div.addEventListener('click', () => markAsRead(notif.id, div));
+                
+                if (prepend) {
+                    notifList.insertBefore(div, notifList.firstChild);
+                } else {
+                    notifList.appendChild(div);
+                }
+            }
+
+            function markAsRead(id, element) {
+                fetch(`/api/notifications/${id}/read`, { method: 'POST' })
+                    .then(() => {
+                        element.remove();
+                        updateBadge(-1);
+                        if (notifList.children.length === 0) {
+                            notifList.innerHTML = '<div class="mf-notif-item"><div class="mf-notif-body">No unread notifications.</div></div>';
+                        }
+                    });
+            }
+
+            function updateBadge(change) {
+                unreadCount += change;
+                if (unreadCount > 0) {
+                    notifBadge.style.display = 'block';
+                    notifBadge.innerText = unreadCount;
+                } else {
+                    notifBadge.style.display = 'none';
+                    unreadCount = 0;
+                }
+            }
+
+            function showToast(notif) {
+                const toast = document.createElement('div');
+                toast.className = 'mf-toast';
+                toast.innerHTML = `
+                    <div class="mf-toast-header">
+                        <span>${notif.subject}</span>
+                        <button class="mf-toast-close">&times;</button>
+                    </div>
+                    <div class="mf-toast-body">${notif.message}</div>
+                `;
+                
+                toastContainer.appendChild(toast);
+                
+                // Trigger reflow to animate
+                setTimeout(() => toast.classList.add('show'), 10);
+
+                const closeBtn = toast.querySelector('.mf-toast-close');
+                closeBtn.addEventListener('click', () => {
+                    toast.classList.remove('show');
+                    setTimeout(() => toast.remove(), 400);
+                });
+
+                // Auto dismiss after 6s
+                setTimeout(() => {
+                    if(toast.parentNode) {
+                        toast.classList.remove('show');
+                        setTimeout(() => toast.remove(), 400);
+                    }
+                }, 6000);
+            }
+        });
+    </script>
 </body>
 </html>
