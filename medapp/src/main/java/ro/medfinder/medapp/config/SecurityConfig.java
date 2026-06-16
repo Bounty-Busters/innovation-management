@@ -24,13 +24,23 @@ public class SecurityConfig {
                 .requestMatchers("/h2-console/**").permitAll()
                 .requestMatchers("/", "/m/**", "/api/nearby", "/api/reserve", "/api/notifications/**", "/ws-notifications/**").permitAll()
                 .requestMatchers("/api/client/**").hasAuthority("CLIENT")
-                .requestMatchers("/admin/**").authenticated()
+                .requestMatchers("/admin/**").hasAnyAuthority("ADMIN", "PHARM_OWNER", "PHARMACIST")
                 .anyRequest().authenticated()
             )
             .formLogin(form -> form
                 .loginPage("/auth/login")
                 .loginProcessingUrl("/auth/login")
-                .defaultSuccessUrl("/admin/dashboard", true)
+                .successHandler((request, response, authentication) -> {
+                    boolean isStaff = authentication.getAuthorities().stream()
+                            .anyMatch(a -> a.getAuthority().equals("ADMIN") 
+                                    || a.getAuthority().equals("PHARM_OWNER") 
+                                    || a.getAuthority().equals("PHARMACIST"));
+                    if (isStaff) {
+                        response.sendRedirect("/admin/dashboard");
+                    } else {
+                        response.sendRedirect("/");
+                    }
+                })
                 .failureUrl("/auth/login?error=true")
                 .usernameParameter("username")
                 .passwordParameter("password")
