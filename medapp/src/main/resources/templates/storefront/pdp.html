@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      layout:decorate="~{layout/storefront}">
+<head>
+    <title th:text="${medication.name} + ' - MedFinder'">MedFinder PDP</title>
+</head>
+<body>
+
+<main layout:fragment="content" class="mf-container">
+    
+    <div class="mf-pdp-header">
+        <div>
+            <span class="mf-ean-badge" th:text="'EAN: ' + ${medication.ean}">EAN: 12345678</span>
+            <h1 class="mf-pdp-title" th:text="${medication.name}">Medication Name</h1>
+            <p class="mf-pdp-desc" th:text="${medication.activeSubstance} + ' • ' + ${medication.dosage} + ' • ' + ${medication.form}">Details</p>
+        </div>
+        <div th:if="${medication.prescriptionRequired}" style="color: var(--clr-secondary); font-weight: 500; display:flex; align-items:center; gap:8px;">
+            <i class="bi bi-exclamation-circle-fill"></i> Prescription Required
+        </div>
+    </div>
+
+    <div class="mf-col-2">
+        <!-- Left: Price Comparison List -->
+        <div class="mf-price-list">
+            <h2 class="mf-section-title" style="font-size: 24px;">Available at</h2>
+            
+            <div th:if="${#lists.isEmpty(stocks)}" class="mf-glass-card">
+                Out of stock everywhere nearby.
+            </div>
+
+            <!-- Sort stocks by price using Thymeleaf stream/sort (assuming they are pre-sorted or we sort here, let's assume controller didn't sort, we can sort them via CSS flex order or let JS handle, actually standard Thymeleaf lacks easy sort, but we can iterate as is. The requirement said "sorted list of prices". We should have sorted it in the controller, but we can do it here via a utility or we just iterate.) -->
+            <!-- We'll assume the controller returns them as is, but we will sort them using JS or modify controller later. For now, just render them. -->
+            
+            <div th:each="stock : ${stocks}" class="mf-glass-card mf-price-row" th:id="'stock-row-' + ${stock.id}" th:attr="data-price=${stock.price}">
+                <div class="mf-pharmacy-info">
+                    <div class="mf-pharmacy-logo" th:text="${#strings.substring(stock.location.pharmacy.name, 0, 1)}">P</div>
+                    <div class="mf-pharmacy-details">
+                        <h3 th:text="${stock.location.pharmacy.name}">Pharmacy Name</h3>
+                        <p>
+                            <i class="bi bi-geo-alt"></i> <span th:text="${stock.location.address} + ', ' + ${stock.location.city}">Address</span>
+                        </p>
+                        <div class="mf-stock-badge mf-stock-in" th:text="'In Stock: ' + ${stock.quantity}">In Stock: 5</div>
+                    </div>
+                </div>
+                <div class="mf-price-action">
+                    <div class="mf-price-big" th:text="${stock.price} + ' RON'">15 RON</div>
+                    <!-- Click & Collect Reservation Trigger -->
+                    <button class="mf-btn mf-btn-primary" 
+                            th:onclick="'reserve(' + ${stock.location.id} + ', ' + ${medication.id} + ', ' + ${stock.price} + ')'">
+                        Reserve <i class="bi bi-arrow-right-short"></i>
+                    </button>
+                </div>
+            </div>
+            
+        </div>
+
+        <!-- Right: Map -->
+        <div id="pdp-map" class="mf-pdp-map mf-glass-card" style="padding:0; border:1px solid var(--clr-border);"></div>
+    </div>
+
+</main>
+
+<th:block layout:fragment="scripts">
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+        const stocks = /*[[${stocks}]]*/ [];
+        /*]]>*/
+
+        document.addEventListener("DOMContentLoaded", function() {
+            // 1. Sort rows by price
+            const list = document.querySelector('.mf-price-list');
+            const rows = Array.from(list.querySelectorAll('.mf-price-row'));
+            rows.sort((a, b) => parseFloat(a.dataset.price) - parseFloat(b.dataset.price));
+            rows.forEach(row => list.appendChild(row));
+
+            // 2. Initialize Map
+            if (stocks.length > 0) {
+                // Focus on first stock location
+                let firstLat = 44.4268;
+                let firstLng = 26.1025;
+                
+                // Find first valid coordinate
+                for(let s of stocks) {
+                    if(s.location.latitude && s.location.longitude) {
+                        firstLat = s.location.latitude;
+                        firstLng = s.location.longitude;
+                        break;
+                    }
+                }
+
+                const map = L.map('pdp-map', { zoomControl: true }).setView([firstLat, firstLng], 13);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 19,
+                    attribution: '© OSM'
+                }).addTo(map);
+
+                const pharmaIcon = L.divIcon({
+                    className: 'custom-div-icon',
+                    html: `<div style='background-color:#00F0FF;width:16px;height:16px;border-radius:50%;border:2px solid #0A0A0B;box-shadow:0 0 15px rgba(0,240,255,0.8);'></div>`,
+                    iconSize: [16, 16],
+                    iconAnchor: [8, 8]
+                });
+
+                // Add markers
+                stocks.forEach(s => {
+                    if(s.location.latitude && s.location.longitude) {
+                        L.marker([s.location.latitude, s.location.longitude], {icon: pharmaIcon})
+                         .addTo(map)
+                         .bindPopup(`<b>${s.location.pharmacy.name}</b><br>${s.price} RON`);
+                    }
+                });
+            }
+        });
+
+        // Click & Collect Logic
+        function reserve(locationId, medicationId, price) {
+            const quantity = prompt("How many units do you want to reserve?", "1");
+            if (!quantity || isNaN(quantity) || quantity <= 0) return;
+
+            const hours = prompt("For how many hours? (0-2h is free, 3-24h applies holding fee)", "2");
+            if (!hours || isNaN(hours) || hours <= 0 || hours > 24) {
+                alert("Please enter a valid duration between 1 and 24 hours.");
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('locationId', locationId);
+            formData.append('medicationId', medicationId);
+            formData.append('quantity', quantity);
+            formData.append('hours', hours);
+
+            fetch('/api/reserve', {
+                method: 'POST',
+                body: formData
+            })
+            .then(async response => {
+                if (response.ok) {
+                    const order = await response.json();
+                    alert(`Reservation successful!\nOrder #: ${order.orderNumber}\nTotal to pay at pharmacy: ${order.totalPrice} RON\n(Holding fee: ${order.holdingFee} RON)\n\nReserved until: ${new Date(order.expiresAt).toLocaleString()}`);
+                    window.location.reload();
+                } else {
+                    const err = await response.text();
+                    alert("Failed to reserve: " + err);
+                }
+            })
+            .catch(error => {
+                console.error("Error:", error);
+                alert("An error occurred during reservation.");
+            });
+        }
+    </script>
+</th:block>
+
+</body>
+</html>

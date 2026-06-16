@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      layout:decorate="~{layout/storefront}">
+<head>
+    <title>MedFinder - Find Medications Near You</title>
+</head>
+<body>
+
+<main layout:fragment="content">
+    
+    <!-- Hero / Map -->
+    <section class="mf-home-hero">
+        <div id="home-map" class="mf-map-container"></div>
+        <div class="mf-hero-overlay">
+            <div class="mf-pulse-dot"></div>
+            <span id="location-status" style="font-weight: 500;">Locating pharmacies near you...</span>
+        </div>
+    </section>
+
+    <!-- Main Content -->
+    <div class="mf-container">
+        <h2 class="mf-section-title">Available in a 1km Radius</h2>
+        
+        <div id="nearby-meds-grid" class="mf-grid">
+            <!-- Populated via Javascript -->
+            <p style="grid-column: 1 / -1; color: var(--clr-text-muted);">Please allow location access to see nearby medications.</p>
+        </div>
+    </div>
+
+</main>
+
+<th:block layout:fragment="scripts">
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            // 1. Initialize Map (Default: Bucharest Center)
+            const map = L.map('home-map', { zoomControl: false }).setView([44.4268, 26.1025], 13);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '© OpenStreetMap'
+            }).addTo(map);
+
+            const statusEl = document.getElementById('location-status');
+            const gridEl = document.getElementById('nearby-meds-grid');
+            
+            // 2. Custom Icon for Pharmacies
+            const pharmaIcon = L.divIcon({
+                className: 'custom-div-icon',
+                html: `<div style='background-color:#00F0FF;width:12px;height:12px;border-radius:50%;border:2px solid #0A0A0B;box-shadow:0 0 10px rgba(0,240,255,0.8);'></div>`,
+                iconSize: [12, 12],
+                iconAnchor: [6, 6]
+            });
+
+            // 3. Geolocation
+            if ("geolocation" in navigator) {
+                navigator.geolocation.getCurrentPosition(
+                    position => {
+                        const lat = position.coords.latitude;
+                        const lng = position.coords.longitude;
+                        
+                        map.setView([lat, lng], 14);
+                        statusEl.innerText = "Showing pharmacies near your exact location";
+                        
+                        // User marker
+                        L.circleMarker([lat, lng], {
+                            radius: 8,
+                            fillColor: "#7B2CBF",
+                            color: "#fff",
+                            weight: 2,
+                            opacity: 1,
+                            fillOpacity: 0.8
+                        }).addTo(map).bindPopup("You are here");
+
+                        fetchNearbyStocks(lat, lng);
+                    },
+                    error => {
+                        console.warn("Geolocation denied or failed", error);
+                        statusEl.innerText = "Approximate location used (Bucharest Default)";
+                        // Fallback to default
+                        fetchNearbyStocks(44.4268, 26.1025);
+                    }
+                );
+            } else {
+                statusEl.innerText = "Approximate location used (Bucharest Default)";
+                fetchNearbyStocks(44.4268, 26.1025);
+            }
+
+            function fetchNearbyStocks(lat, lng) {
+                fetch(`/api/nearby?lat=${lat}&lng=${lng}&radiusKm=1.0`)
+                    .then(res => res.json())
+                    .then(data => {
+                        gridEl.innerHTML = ''; // clear loading
+                        if (data.length === 0) {
+                            gridEl.innerHTML = '<p>No medications found within 1km.</p>';
+                            return;
+                        }
+
+                        // Use a Map to deduplicate by EAN (show 1 card per medication)
+                        const medsMap = new Map();
+                        data.forEach(stock => {
+                            // Add marker to map
+                            const loc = stock.location;
+                            if (loc.latitude && loc.longitude) {
+                                L.marker([loc.latitude, loc.longitude], {icon: pharmaIcon})
+                                 .addTo(map)
+                                 .bindPopup(`<b>${loc.name}</b><br>${loc.address}`);
+                            }
+
+                            // Deduplicate for grid
+                            const ean = stock.medication.ean;
+                            if (!medsMap.has(ean)) {
+                                medsMap.set(ean, {
+                                    medication: stock.medication,
+                                    minPrice: stock.price,
+                                    locationsCount: 1
+                                });
+                            } else {
+                                const entry = medsMap.get(ean);
+                                entry.locationsCount++;
+                                if (stock.price < entry.minPrice) {
+                                    entry.minPrice = stock.price;
+                                }
+                            }
+                        });
+
+                        // Render Cards
+                        medsMap.forEach((entry, ean) => {
+                            const med = entry.medication;
+                            const card = document.createElement('a');
+                            card.href = `/m/${ean}`;
+                            card.className = 'mf-glass-card mf-med-card';
+                            
+                            card.innerHTML = `
+                                <div class="mf-med-header">
+                                    <div>
+                                        <h3 class="mf-med-name">${med.name}</h3>
+                                        <div class="mf-med-sub">${med.activeSubstance || 'Unknown'} • ${med.dosage || ''}</div>
+                                    </div>
+                                    ${med.prescriptionRequired ? '<i class="bi bi-file-medical" style="color:var(--clr-text-muted);" title="Prescription Required"></i>' : ''}
+                                </div>
+                                <div class="mf-med-price">from ${entry.minPrice} RON</div>
+                                <div class="mf-med-footer">
+                                    <span>${entry.locationsCount} pharmacies nearby</span>
+                                    <span>${med.form}</span>
+                                </div>
+                            `;
+                            gridEl.appendChild(card);
+                        });
+                    });
+            }
+        });
+    </script>
+</th:block>
+
+</body>
+</html>
