@@ -43,7 +43,8 @@ public class ClientOrderService {
             OrderStatus.PENDING,
             OrderStatus.ACCEPTED,
             OrderStatus.READY_FOR_PICKUP,
-            OrderStatus.PICKED_UP
+            OrderStatus.PICKED_UP,
+            OrderStatus.EXPIRED
     );
 
     /** Statusuri din care clientul poate anula. */
@@ -77,7 +78,14 @@ public class ClientOrderService {
             throw new IllegalArgumentException("Insufficient stock. Available: " + medStock.getQuantity());
         }
 
-        // 2. Validare zilnică (anti-hoarding): max 1 comandă activă/zi per med+loc
+        // 2. Limită globală: maxim 10 comenzi PENDING simultane
+        long pendingCount = orderRepository.countByClientIdAndStatus(client.getId(), OrderStatus.PENDING);
+        if (pendingCount >= 10) {
+            throw new IllegalStateException(
+                    "Ai atins limita de 10 comenzi în așteptare. Te rugăm să anulezi una dintre comenzile existente înainte de a plasa una nouă.");
+        }
+
+        // 3. Validare zilnică (anti-hoarding): max 1 comandă activă/zi per med+loc
         LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
         boolean alreadyExists = orderRepository.existsActiveOrderToday(
                 client.getId(), req.getLocationId(), req.getMedicationId(),

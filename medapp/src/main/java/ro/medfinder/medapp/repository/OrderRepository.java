@@ -66,4 +66,10 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     // ── Click & Collect: client orders listing ──────────────────
     List<Order> findByClientIdOrderByCreatedAtDesc(Long clientId);
+
+    // ── Click & Collect: pending limit check ────────────────────
+    long countByClientIdAndStatus(Long clientId, OrderStatus status);
+
+    // ── Click & Collect: auto-reject stale PENDING orders ───────
+    List<Order> findByStatusAndCreatedAtBefore(OrderStatus status, LocalDateTime cutoff);
 }
