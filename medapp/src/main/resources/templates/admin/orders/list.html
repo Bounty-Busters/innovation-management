@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/admin}">
+<head>
+    <title>Orders</title>
+</head>
+<body>
+
+<div layout:fragment="page-title">Orders Management</div>
+
+<div layout:fragment="content">
+
+    <!-- Filters -->
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body">
+            <form th:action="@{/admin/orders}" method="get" class="row g-3 align-items-center">
+                <div class="col-auto">
+                    <label for="statusFilter" class="form-label mb-0 me-2">Status:</label>
+                </div>
+                <div class="col-auto">
+                    <select name="status" class="form-select form-select-sm" id="statusFilter">
+                        <option value="">All Statuses</option>
+                        <option th:each="s : ${allStatuses}" th:value="${s}" th:text="${s}"
+                                th:selected="${statusFilter != null and statusFilter.name() == s.name()}"></option>
+                    </select>
+                </div>
+                <div class="col-auto">
+                    <button type="submit" class="btn btn-sm btn-outline-primary">Filter</button>
+                    <a th:href="@{/admin/orders}" class="btn btn-sm btn-outline-secondary" th:if="${statusFilter != null}">Clear</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Orders Table -->
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0 align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Order #</th>
+                            <th>Client</th>
+                            <th>Pharmacy</th>
+                            <th>Location</th>
+                            <th>Status</th>
+                            <th>Total</th>
+                            <th>Date</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="order : ${orderPage.content}">
+                            <td class="fw-bold" th:text="${order.orderNumber}">ORD-001</td>
+                            <td th:text="${order.client != null ? order.client.firstName + ' ' + order.client.lastName : '—'}">Client</td>
+                            <td th:text="${order.pickupLocation != null and order.pickupLocation.pharmacy != null ? order.pickupLocation.pharmacy.name : '—'}">Pharmacy</td>
+                            <td th:text="${order.pickupLocation != null ? order.pickupLocation.name : '—'}">Location</td>
+                            <td>
+                                <span class="badge"
+                                      th:classappend="${order.status.name() == 'PENDING' ? 'bg-warning text-dark' :
+                                                        order.status.name() == 'ACCEPTED' ? 'bg-info' :
+                                                        order.status.name() == 'READY_FOR_PICKUP' ? 'bg-success' :
+                                                        order.status.name() == 'PICKED_UP' ? 'bg-secondary' :
+                                                        order.status.name() == 'REJECTED' ? 'bg-danger' :
+                                                        order.status.name() == 'CANCELLED' ? 'bg-secondary' :
+                                                        order.status.name() == 'EXPIRED' ? 'bg-warning' : 'bg-dark'}"
+                                      th:text="${order.status}">STATUS</span>
+                            </td>
+                            <td th:text="${order.totalPrice + ' RON'}">0.00</td>
+                            <td th:text="${#temporals.format(order.createdAt, 'dd.MM.yyyy HH:mm')}">01.01.2026</td>
+                            <td class="text-end">
+                                <a th:href="@{/admin/orders/{id}(id=${order.id})}" class="btn btn-sm btn-outline-info" title="View Details">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        <tr th:if="${orderPage.empty}">
+                            <td colspan="8" class="text-center py-4 text-muted">No orders found.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <th:block th:replace="~{fragments/pagination :: pagination(pageData=${orderPage})}"></th:block>
+    </div>
+</div>
+
+</body>
+</html>

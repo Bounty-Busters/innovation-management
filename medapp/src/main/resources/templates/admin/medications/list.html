@@ -80,21 +80,7 @@
             </div>
         </div>
         
-        <div class="card-footer bg-white border-0 py-3" th:if="${medicationPage.totalPages > 1}">
-            <nav>
-                <ul class="pagination mb-0 justify-content-center">
-                    <li class="page-item" th:classappend="${medicationPage.first ? 'disabled' : ''}">
-                        <a class="page-link" th:href="@{/admin/medications(page=${medicationPage.number - 1}, search=${search})}">Previous</a>
-                    </li>
-                    <li class="page-item disabled">
-                        <span class="page-link">Page [[${medicationPage.number + 1}]] of [[${medicationPage.totalPages}]]</span>
-                    </li>
-                    <li class="page-item" th:classappend="${medicationPage.last ? 'disabled' : ''}">
-                        <a class="page-link" th:href="@{/admin/medications(page=${medicationPage.number + 1}, search=${search})}">Next</a>
-                    </li>
-                </ul>
-            </nav>
-        </div>
+        <th:block th:replace="~{fragments/pagination :: pagination(pageData=${medicationPage})}"></th:block>
     </div>
 </div>
 

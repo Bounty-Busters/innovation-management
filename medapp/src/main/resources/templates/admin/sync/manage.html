@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/admin}">
+<head>
+    <title>Trigger Sync</title>
+</head>
+<body>
+
+<div layout:fragment="page-title">Sync Data</div>
+
+<div layout:fragment="page-actions">
+    <a th:href="@{/admin/sync/logs}" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-clock-history"></i> View Logs
+    </a>
+</div>
+
+<div layout:fragment="content">
+    <div class="row">
+        <div class="col-lg-6">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-white">
+                    <h6 class="mb-0"><i class="bi bi-cloud-upload me-1"></i> Trigger New Sync</h6>
+                </div>
+                <div class="card-body p-4">
+
+                    <form th:action="@{/admin/sync/trigger}" method="post" th:object="${syncForm}" enctype="multipart/form-data">
+                        
+                        <div class="mb-3">
+                            <label for="pharmacyId" class="form-label">Select Pharmacy *</label>
+                            <select class="form-select" th:field="*{pharmacyId}" required>
+                                <option value="">Choose...</option>
+                                <option th:each="p : ${pharmacies}" th:value="${p.id}" th:text="${p.name}"></option>
+                            </select>
+                            <div class="form-text">Stock will be updated for the first active location of this pharmacy.</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label d-block">Sync Type</label>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" th:field="*{syncType}" value="CSV" id="typeCsv" checked>
+                                <label class="form-check-label" for="typeCsv">CSV Upload</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" th:field="*{syncType}" value="MANUAL" id="typeManual" disabled>
+                                <label class="form-check-label" for="typeManual">Manual / API (Coming Soon)</label>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="file" class="form-label">Upload CSV File *</label>
+                            <input class="form-control" type="file" id="file" th:field="*{file}" accept=".csv" required>
+                            <div class="form-text">Expected format: <code>EAN, Quantity, Price</code></div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="bi bi-arrow-repeat"></i> Start Synchronization
+                        </button>
+                    </form>
+
+                </div>
+            </div>
+            
+            <!-- Instructions Card -->
+            <div class="card shadow-sm border-0 mt-4 bg-light">
+                <div class="card-body">
+                    <h6 class="text-muted"><i class="bi bi-info-circle me-1"></i> How it works</h6>
+                    <p class="small text-muted mb-0">
+                        The CSV sync requires 3 columns without spaces in the header: <code>EAN</code>, <code>Quantity</code>, and <code>Price</code>. 
+                        The first row is always ignored as a header row. 
+                        If a medication with the provided EAN does not exist in the MedFinder database, the row will be skipped and marked as failed.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/admin}">
+<head>
+    <title>Location Details</title>
+</head>
+<body>
+
+<div layout:fragment="page-title" th:text="'Location: ' + (${location.name} ?: ${location.address})">Location Details</div>
+
+<div layout:fragment="page-actions">
+    <a th:href="@{/admin/locations}" class="btn btn-sm btn-outline-secondary me-1">
+        <i class="bi bi-arrow-left"></i> Back
+    </a>
+    <a th:href="@{/admin/locations/{id}/edit(id=${location.id})}" class="btn btn-sm btn-primary">
+        <i class="bi bi-pencil"></i> Edit
+    </a>
+</div>
+
+<div layout:fragment="content">
+
+    <!-- Info Card -->
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-header bg-white">
+            <h6 class="mb-0"><i class="bi bi-info-circle me-1"></i> General Information</h6>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <p><strong>Pharmacy:</strong> <span th:text="${location.pharmacy != null ? location.pharmacy.name : '—'}">Pharmacy</span></p>
+                    <p><strong>Address:</strong> <span th:text="${location.address}">Address</span></p>
+                    <p><strong>City:</strong> <span th:text="${location.city}">City</span>, <span th:text="${location.county}">County</span></p>
+                </div>
+                <div class="col-md-6">
+                    <p><strong>Phone:</strong> <span th:text="${location.phone ?: '—'}">Phone</span></p>
+                    <p><strong>Coordinates:</strong> <span th:text="${location.latitude != null ? location.latitude + ', ' + location.longitude : '—'}">Coords</span></p>
+                    <p><strong>Status:</strong>
+                        <span th:if="${location.active}" class="badge bg-success">Active</span>
+                        <span th:unless="${location.active}" class="badge bg-danger">Inactive</span>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Working Hours -->
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-header bg-white">
+            <h6 class="mb-0"><i class="bi bi-clock me-1"></i> Working Hours</h6>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-sm mb-0 align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Day</th>
+                            <th>Open</th>
+                            <th>Close</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="wh : ${workingHours}">
+                            <td class="fw-bold" th:text="${wh.dayOfWeek}">MONDAY</td>
+                            <td th:text="${wh.openTime ?: '—'}">08:00</td>
+                            <td th:text="${wh.closeTime ?: '—'}">20:00</td>
+                            <td>
+                                <span th:if="${wh.closed}" class="badge bg-danger">Closed</span>
+                                <span th:unless="${wh.closed}" class="badge bg-success">Open</span>
+                            </td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(workingHours)}">
+                            <td colspan="4" class="text-center py-3 text-muted">No working hours configured.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Pharmacists -->
+        <div class="col-md-6 mb-4">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-header bg-white">
+                    <h6 class="mb-0"><i class="bi bi-person-badge me-1"></i> Pharmacists <span class="badge bg-primary ms-1" th:text="${#lists.size(pharmacists)}">0</span></h6>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0 align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="ph : ${pharmacists}">
+                                    <td th:text="${ph.firstName + ' ' + ph.lastName}">Name</td>
+                                    <td th:text="${ph.email}">email</td>
+                                    <td>
+                                        <span th:if="${ph.enabled}" class="badge bg-success">Active</span>
+                                        <span th:unless="${ph.enabled}" class="badge bg-danger">Inactive</span>
+                                    </td>
+                                </tr>
+                                <tr th:if="${#lists.isEmpty(pharmacists)}">
+                                    <td colspan="3" class="text-center py-3 text-muted">No pharmacists assigned.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Med Stocks -->
+        <div class="col-md-6 mb-4">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-header bg-white">
+                    <h6 class="mb-0"><i class="bi bi-capsule me-1"></i> Medication Stock <span class="badge bg-primary ms-1" th:text="${#lists.size(medStocks)}">0</span></h6>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0 align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Medication</th>
+                                    <th>Price</th>
+                                    <th>Qty</th>
+                                    <th>Available</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="stock : ${medStocks}">
+                                    <td th:text="${stock.medication != null ? stock.medication.name : '—'}">Med</td>
+                                    <td th:text="${stock.price + ' RON'}">10.00</td>
+                                    <td th:text="${stock.quantity}">100</td>
+                                    <td>
+                                        <span th:if="${stock.available}" class="badge bg-success">Yes</span>
+                                        <span th:unless="${stock.available}" class="badge bg-danger">No</span>
+                                    </td>
+                                </tr>
+                                <tr th:if="${#lists.isEmpty(medStocks)}">
+                                    <td colspan="4" class="text-center py-3 text-muted">No medication stock.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

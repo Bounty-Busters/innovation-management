@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!--
+  Generic pagination fragment.
+  Usage: <th:block th:replace="~{fragments/pagination :: pagination(pageData=${myPageObject})}"></th:block>
+-->
+<div th:fragment="pagination(pageData)">
+    <div class="card-footer bg-white border-0 py-3" th:if="${pageData.totalPages > 1}">
+        <nav>
+            <ul class="pagination mb-0 justify-content-center">
+                <li class="page-item" th:classappend="${pageData.first ? 'disabled' : ''}">
+                    <a class="page-link" th:href="@{${#request.requestURI}(page=${pageData.number - 1}, search=${param.search}, status=${param.status})}">Previous</a>
+                </li>
+                
+                <li class="page-item disabled">
+                    <span class="page-link">Page [[${pageData.number + 1}]] of [[${pageData.totalPages}]]</span>
+                </li>
+                
+                <li class="page-item" th:classappend="${pageData.last ? 'disabled' : ''}">
+                    <a class="page-link" th:href="@{${#request.requestURI}(page=${pageData.number + 1}, search=${param.search}, status=${param.status})}">Next</a>
+                </li>
+            </ul>
+        </nav>
+    </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/admin}">
+<head>
+    <title>Order Details</title>
+</head>
+<body>
+
+<div layout:fragment="page-title" th:text="'Order: ' + ${order.orderNumber}">Order Details</div>
+
+<div layout:fragment="page-actions">
+    <a th:href="@{/admin/orders}" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Back to Orders
+    </a>
+</div>
+
+<div layout:fragment="content">
+
+    <div class="row">
+        <!-- Order Info -->
+        <div class="col-md-8">
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0"><i class="bi bi-info-circle me-1"></i> Order Information</h6>
+                    <span class="badge fs-6"
+                          th:classappend="${order.status.name() == 'PENDING' ? 'bg-warning text-dark' :
+                                            order.status.name() == 'ACCEPTED' ? 'bg-info' :
+                                            order.status.name() == 'READY_FOR_PICKUP' ? 'bg-success' :
+                                            order.status.name() == 'PICKED_UP' ? 'bg-secondary' :
+                                            order.status.name() == 'REJECTED' ? 'bg-danger' :
+                                            order.status.name() == 'CANCELLED' ? 'bg-secondary' :
+                                            order.status.name() == 'EXPIRED' ? 'bg-warning' : 'bg-dark'}"
+                          th:text="${order.status}">STATUS</span>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Order Number:</strong> <span th:text="${order.orderNumber}">ORD-001</span></p>
+                            <p><strong>Client:</strong> <span th:text="${order.client != null ? order.client.firstName + ' ' + order.client.lastName : '—'}">Client</span></p>
+                            <p><strong>Client Email:</strong> <span th:text="${order.client != null ? order.client.email : '—'}">email</span></p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Pharmacy:</strong> <span th:text="${order.pickupLocation != null and order.pickupLocation.pharmacy != null ? order.pickupLocation.pharmacy.name : '—'}">Pharmacy</span></p>
+                            <p><strong>Pickup Location:</strong> <span th:text="${order.pickupLocation != null ? order.pickupLocation.name + ' — ' + order.pickupLocation.address : '—'}">Location</span></p>
+                            <p><strong>Created:</strong> <span th:text="${#temporals.format(order.createdAt, 'dd.MM.yyyy HH:mm')}">01.01.2026</span></p>
+                        </div>
+                    </div>
+
+                    <div class="row" th:if="${order.rejectionReason != null}">
+                        <div class="col-12">
+                            <div class="alert alert-danger mb-0">
+                                <strong>Rejection Reason:</strong> <span th:text="${order.rejectionReason}">Reason</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Order Items -->
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header bg-white">
+                    <h6 class="mb-0"><i class="bi bi-cart3 me-1"></i> Order Items</h6>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table mb-0 align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Medication</th>
+                                    <th class="text-center">Quantity</th>
+                                    <th class="text-end">Unit Price</th>
+                                    <th class="text-end">Subtotal</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="item : ${order.items}">
+                                    <td th:text="${item.medication != null ? item.medication.name : '—'}">Medication</td>
+                                    <td class="text-center" th:text="${item.quantity}">1</td>
+                                    <td class="text-end" th:text="${item.unitPrice + ' RON'}">10.00</td>
+                                    <td class="text-end fw-bold" th:text="${item.subtotal + ' RON'}">10.00</td>
+                                </tr>
+                                <tr th:if="${order.items == null or order.items.isEmpty()}">
+                                    <td colspan="4" class="text-center py-3 text-muted">No items.</td>
+                                </tr>
+                            </tbody>
+                            <tfoot class="table-light">
+                                <tr>
+                                    <td colspan="3" class="text-end fw-bold">Total:</td>
+                                    <td class="text-end fw-bold fs-5" th:text="${order.totalPrice + ' RON'}">0.00</td>
+                                </tr>
+                                <tr th:if="${order.holdingFee != null and order.holdingFee.compareTo(T(java.math.BigDecimal).ZERO) > 0}">
+                                    <td colspan="3" class="text-end">Holding Fee:</td>
+                                    <td class="text-end" th:text="${order.holdingFee + ' RON'}">0.00</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Status Actions -->
+        <div class="col-md-4">
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header bg-white">
+                    <h6 class="mb-0"><i class="bi bi-arrow-left-right me-1"></i> Status Actions</h6>
+                </div>
+                <div class="card-body">
+
+                    <!-- PENDING → ACCEPTED -->
+                    <div th:if="${order.status.name() == 'PENDING'}" class="mb-2">
+                        <form th:action="@{/admin/orders/{id}/status(id=${order.id})}" method="post">
+                            <input type="hidden" name="newStatus" value="ACCEPTED">
+                            <button type="submit" class="btn btn-info w-100 mb-2">
+                                <i class="bi bi-check-circle"></i> Accept Order
+                            </button>
+                        </form>
+
+                        <!-- Reject with reason -->
+                        <button class="btn btn-danger w-100 mb-2" data-bs-toggle="modal" data-bs-target="#rejectModal">
+                            <i class="bi bi-x-circle"></i> Reject Order
+                        </button>
+
+                        <form th:action="@{/admin/orders/{id}/status(id=${order.id})}" method="post">
+                            <input type="hidden" name="newStatus" value="CANCELLED">
+                            <button type="submit" class="btn btn-outline-secondary w-100" onclick="return confirm('Are you sure you want to cancel this order?')">
+                                <i class="bi bi-dash-circle"></i> Cancel Order
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- ACCEPTED → READY_FOR_PICKUP -->
+                    <div th:if="${order.status.name() == 'ACCEPTED'}" class="mb-2">
+                        <form th:action="@{/admin/orders/{id}/status(id=${order.id})}" method="post">
+                            <input type="hidden" name="newStatus" value="READY_FOR_PICKUP">
+                            <button type="submit" class="btn btn-success w-100 mb-2">
+                                <i class="bi bi-bag-check"></i> Mark Ready for Pickup
+                            </button>
+                        </form>
+                        <form th:action="@{/admin/orders/{id}/status(id=${order.id})}" method="post">
+                            <input type="hidden" name="newStatus" value="CANCELLED">
+                            <button type="submit" class="btn btn-outline-secondary w-100" onclick="return confirm('Are you sure you want to cancel this order?')">
+                                <i class="bi bi-dash-circle"></i> Cancel Order
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- READY_FOR_PICKUP → PICKED_UP -->
+                    <div th:if="${order.status.name() == 'READY_FOR_PICKUP'}" class="mb-2">
+                        <form th:action="@{/admin/orders/{id}/status(id=${order.id})}" method="post">
+                            <input type="hidden" name="newStatus" value="PICKED_UP">
+                            <button type="submit" class="btn btn-primary w-100 mb-2">
+                                <i class="bi bi-check2-all"></i> Confirm Pickup
+                            </button>
+                        </form>
+                        <form th:action="@{/admin/orders/{id}/status(id=${order.id})}" method="post">
+                            <input type="hidden" name="newStatus" value="EXPIRED">
+                            <button type="submit" class="btn btn-outline-warning w-100" onclick="return confirm('Mark this order as expired?')">
+                                <i class="bi bi-clock-history"></i> Mark Expired
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Terminal statuses -->
+                    <div th:if="${order.status.name() == 'PICKED_UP' or order.status.name() == 'REJECTED' or order.status.name() == 'CANCELLED' or order.status.name() == 'EXPIRED'}">
+                        <p class="text-muted mb-0">No further actions available for this order status.</p>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Timeline -->
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-white">
+                    <h6 class="mb-0"><i class="bi bi-clock-history me-1"></i> Timeline</h6>
+                </div>
+                <div class="card-body">
+                    <p><strong>Created:</strong> <span th:text="${#temporals.format(order.createdAt, 'dd.MM.yyyy HH:mm')}">Date</span></p>
+                    <p th:if="${order.estimatedPickupTime}"><strong>Est. Pickup:</strong> <span th:text="${#temporals.format(order.estimatedPickupTime, 'dd.MM.yyyy HH:mm')}">Date</span></p>
+                    <p th:if="${order.pickedUpAt}"><strong>Picked Up:</strong> <span th:text="${#temporals.format(order.pickedUpAt, 'dd.MM.yyyy HH:mm')}">Date</span></p>
+                    <p th:if="${order.expiresAt}"><strong>Expires:</strong> <span th:text="${#temporals.format(order.expiresAt, 'dd.MM.yyyy HH:mm')}">Date</span></p>
+                    <p th:if="${order.notes}"><strong>Notes:</strong> <span th:text="${order.notes}">Notes</span></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reject Modal -->
+    <div class="modal fade" id="rejectModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form th:action="@{/admin/orders/{id}/status(id=${order.id})}" method="post">
+                    <input type="hidden" name="newStatus" value="REJECTED">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Reject Order</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <label for="rejectionReason" class="form-label">Rejection Reason *</label>
+                        <textarea class="form-control" name="rejectionReason" id="rejectionReason" rows="3" required></textarea>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-danger">Reject Order</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+</body>
+</html>

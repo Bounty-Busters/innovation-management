@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      layout:decorate="~{layout/admin}">
+<head>
+    <title>Locations</title>
+</head>
+<body>
+
+<div layout:fragment="page-title">Locations Management</div>
+
+<div layout:fragment="page-actions">
+    <a sec:authorize="hasAnyAuthority('SUPER_USER','PHARM_OWNER')" th:href="@{/admin/locations/new}" class="btn btn-sm btn-primary">
+        <i class="bi bi-plus-circle"></i> Add New
+    </a>
+</div>
+
+<div layout:fragment="content">
+
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0 align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Name</th>
+                            <th>Address</th>
+                            <th>City</th>
+                            <th>County</th>
+                            <th>Pharmacy</th>
+                            <th>Nr. Medications</th>
+                            <th>Status</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="loc : ${locationPage.content}">
+                            <td class="fw-bold" th:text="${loc.name ?: '—'}">Location</td>
+                            <td th:text="${loc.address}">Address</td>
+                            <td th:text="${loc.city}">City</td>
+                            <td th:text="${loc.county}">County</td>
+                            <td th:text="${loc.pharmacy != null ? loc.pharmacy.name : '—'}">Pharmacy</td>
+                            <td th:text="${loc.medStocks != null ? loc.medStocks.size() : 0}">0</td>
+                            <td>
+                                <span th:if="${loc.active}" class="badge bg-success">Active</span>
+                                <span th:unless="${loc.active}" class="badge bg-danger">Inactive</span>
+                            </td>
+                            <td class="text-end">
+                                <a th:href="@{/admin/locations/{id}(id=${loc.id})}" class="btn btn-sm btn-outline-info" title="View">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <a sec:authorize="hasAnyAuthority('SUPER_USER','PHARM_OWNER')" th:href="@{/admin/locations/{id}/edit(id=${loc.id})}" class="btn btn-sm btn-outline-primary" title="Edit">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        <tr th:if="${locationPage.empty}">
+                            <td colspan="8" class="text-center py-4 text-muted">No locations found.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <th:block th:replace="~{fragments/pagination :: pagination(pageData=${locationPage})}"></th:block>
+    </div>
+</div>
+
+</body>
+</html>
