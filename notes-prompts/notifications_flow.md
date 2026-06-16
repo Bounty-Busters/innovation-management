@@ -10,18 +10,20 @@ Pentru a menține decuplarea și a nu încetini salvarea comenzilor, sistemul va
 - Un `NotificationEventListener` va asculta aceste evenimente (asincron, `@TransactionalEventListener`) și va decide ce notificări să creeze și să trimită.
 
 ### A. Notificări Email (Client)
-- **Când se trimit:** 
+
+- **Când se trimit:**
   - Când comanda este **ACCEPTED** (Confirmare rezervare).
   - Când comanda este **READY_FOR_PICKUP** (Vino să o ridici).
   - Când comanda este **REJECTED / CANCELLED** (Informare anulare).
 - **Tehnologie:** `spring-boot-starter-mail` + Șabloane HTML folosind **Thymeleaf** (`/resources/templates/mail/`).
 
 ### B. Notificări In-App / Admin Panel (Farmacist)
+
 - **Când se trimit:**
   - Când se creează o comandă nouă (**PENDING**). Farmacistul trebuie să afle imediat pentru a răspunde în 30 de minute.
   - Când clientul anulează o comandă (**CANCELLED**).
-- **Tehnologie:** **WebSockets (STOMP)** pentru real-time. 
-- **UX Propus:** 
+- **Tehnologie:** **WebSockets (STOMP)** pentru real-time.
+- **UX Propus:**
   - Pe Frontend, va exista un script care se conectează la topicul locației farmaciei. La primirea unui mesaj nou, va apărea un "Toast" (pop-up) în colțul ecranului.
   - **Clopoțel de Notificări:** În meniul de sus al adminului va exista o iconiță tip clopoțel care va prelua din baza de date notificările necitite (`NotificationStatus.UNREAD`), asigurând faptul că dacă farmacistul a fost offline, nu va pierde alertele (Fallback UI).
   - **Concurență:** Dacă 2 farmaciști din aceeași locație dau click pe aceeași notificare, al doilea va primi o eroare prietenoasă ("Comanda a fost deja procesată de un coleg").
@@ -31,6 +33,7 @@ Pentru a menține decuplarea și a nu încetini salvarea comenzilor, sistemul va
 ## 📝 To Be Done (Îmbunătățiri pentru viitor)
 
 Următoarele aspecte sunt notate pentru dezvoltări ulterioare, nefiind prioritare pentru MVP-ul curent:
+
 1. **Retry Mechanism la Mailuri:** În prezent, dacă serverul SMTP pică, notificarea este doar marcată ca `FAILED` în baza de date și se trece mai departe. Pe viitor se dorește un mecanism de retry (ex: un job care rulează din oră în oră și reîncearcă trimiterea).
 2. **Limitatoare de Rată (Rate Limiting) pentru SMTP:** La auto-respingerea în masă a comenzilor vechi (peste 30 min), pot apărea burst-uri de mail-uri trimise simultan. Va fi necesară implementarea unei cozi (Queue) sau utilizarea unui serviciu specializat gen SendGrid/Mailgun pentru a evita penalizările de spam.
 
@@ -64,7 +67,7 @@ Următoarele aspecte sunt notate pentru dezvoltări ulterioare, nefiind priorita
 _Copiază acest bloc de text și dă-l agentului de codare pentru a începe implementarea:_
 
 ```text
-Te rog să implementezi sistemul de Notificări pentru aplicația Spring Boot folosind arhitectura din fișierul `notifications_flow.md`. Entitatea `Notification` există deja. 
+Te rog să implementezi sistemul de Notificări pentru aplicația Spring Boot folosind arhitectura din fișierul `notifications_flow.md`. Entitatea `Notification` există deja.
 
 Implementăm doar Notificări pe Email (pentru clienți) și Notificări In-App / WebSockets (pentru admini/farmaciști).
 
