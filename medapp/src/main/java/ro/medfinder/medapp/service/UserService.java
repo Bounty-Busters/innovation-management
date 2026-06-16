@@ -33,6 +33,12 @@ public class UserService {
         }
 
         Role role = Role.valueOf(request.getRole());
+        
+        // Prevent registering as an admin/pharmacy user without a valid domain
+        if (role != Role.CLIENT && !request.getEmail().toLowerCase().endsWith("@medfinder.ro")) {
+            throw new IllegalArgumentException("Only @medfinder.ro emails can register as Pharmacy Owner or Pharmacist.");
+        }
+
         User user;
 
         if (role == Role.PHARM_OWNER) {
