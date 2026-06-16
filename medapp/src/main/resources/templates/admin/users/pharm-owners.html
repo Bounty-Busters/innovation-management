@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/admin}">
+<head>
+    <title>Pharmacy Owners</title>
+</head>
+<body>
+
+<div layout:fragment="page-title">Pharmacy Owners</div>
+
+<div layout:fragment="content">
+
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0 align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Company</th>
+                            <th>Nr. Pharmacies</th>
+                            <th>Status</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="po : ${ownerPage.content}">
+                            <td class="fw-bold" th:text="${po.firstName + ' ' + po.lastName}">Name</td>
+                            <td th:text="${po.email}">email</td>
+                            <td th:text="${po.companyName ?: '—'}">Company</td>
+                            <td th:text="${po.pharmacies != null ? po.pharmacies.size() : 0}">0</td>
+                            <td>
+                                <span th:if="${po.enabled}" class="badge bg-success">Active</span>
+                                <span th:unless="${po.enabled}" class="badge bg-danger">Inactive</span>
+                            </td>
+                            <td class="text-end">
+                                <a th:href="@{/admin/users/{id}/edit(id=${po.id})}" class="btn btn-sm btn-outline-primary" title="Edit">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <form th:action="@{/admin/users/{id}/toggle(id=${po.id})}" method="post" class="d-inline">
+                                    <button type="submit" class="btn btn-sm"
+                                            th:classappend="${po.enabled ? 'btn-outline-warning' : 'btn-outline-success'}"
+                                            th:title="${po.enabled ? 'Disable' : 'Enable'}">
+                                        <i class="bi" th:classappend="${po.enabled ? 'bi-person-x' : 'bi-person-check'}"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        <tr th:if="${ownerPage.empty}">
+                            <td colspan="6" class="text-center py-4 text-muted">No pharmacy owners found.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <th:block th:replace="~{fragments/pagination :: pagination(pageData=${ownerPage})}"></th:block>
+    </div>
+</div>
+
+</body>
+</html>

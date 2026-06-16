@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/admin}">
+<head>
+    <title>Pharmacy Details</title>
+</head>
+<body>
+
+<div layout:fragment="page-title" th:text="'Pharmacy: ' + ${pharmacy.name}">Pharmacy Details</div>
+
+<div layout:fragment="page-actions">
+    <a th:href="@{/admin/pharmacies}" class="btn btn-sm btn-outline-secondary me-1">
+        <i class="bi bi-arrow-left"></i> Back
+    </a>
+    <a th:href="@{/admin/pharmacies/{id}/edit(id=${pharmacy.id})}" class="btn btn-sm btn-primary">
+        <i class="bi bi-pencil"></i> Edit
+    </a>
+</div>
+
+<div layout:fragment="content">
+
+    <!-- Info Card -->
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-header bg-white">
+            <h6 class="mb-0"><i class="bi bi-info-circle me-1"></i> General Information</h6>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <p><strong>CUI:</strong> <span th:text="${pharmacy.cui ?: '—'}">RO123</span></p>
+                    <p><strong>Phone:</strong> <span th:text="${pharmacy.phone ?: '—'}">0700</span></p>
+                    <p><strong>Email:</strong> <span th:text="${pharmacy.email ?: '—'}">email</span></p>
+                </div>
+                <div class="col-md-6">
+                    <p><strong>Owner:</strong> <span th:text="${pharmacy.owner != null ? pharmacy.owner.firstName + ' ' + pharmacy.owner.lastName : '—'}">Owner</span></p>
+                    <p><strong>Website:</strong>
+                        <a th:if="${pharmacy.website}" th:href="${pharmacy.website}" th:text="${pharmacy.website}" target="_blank">URL</a>
+                        <span th:unless="${pharmacy.website}">—</span>
+                    </p>
+                    <p><strong>Status:</strong>
+                        <span th:if="${pharmacy.active}" class="badge bg-success">Active</span>
+                        <span th:unless="${pharmacy.active}" class="badge bg-danger">Inactive</span>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabs -->
+    <ul class="nav nav-tabs mb-3" id="pharmacyTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="locations-tab" data-bs-toggle="tab" data-bs-target="#locations" type="button" role="tab">
+                <i class="bi bi-geo-alt"></i> Locations <span class="badge bg-primary ms-1" th:text="${#lists.size(locations)}">0</span>
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="pharmacists-tab" data-bs-toggle="tab" data-bs-target="#pharmacists" type="button" role="tab">
+                <i class="bi bi-person-badge"></i> Pharmacists <span class="badge bg-primary ms-1" th:text="${#lists.size(pharmacists)}">0</span>
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="sync-tab" data-bs-toggle="tab" data-bs-target="#sync" type="button" role="tab">
+                <i class="bi bi-arrow-repeat"></i> Sync Config
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="pharmacyTabsContent">
+        <!-- Locations Tab -->
+        <div class="tab-pane fade show active" id="locations" role="tabpanel">
+            <div class="card shadow-sm border-0">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0 align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Address</th>
+                                    <th>City</th>
+                                    <th>Status</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="loc : ${locations}">
+                                    <td class="fw-bold" th:text="${loc.name ?: '—'}">Location</td>
+                                    <td th:text="${loc.address}">Address</td>
+                                    <td th:text="${loc.city}">City</td>
+                                    <td>
+                                        <span th:if="${loc.active}" class="badge bg-success">Active</span>
+                                        <span th:unless="${loc.active}" class="badge bg-danger">Inactive</span>
+                                    </td>
+                                    <td class="text-end">
+                                        <a th:href="@{/admin/locations/{id}(id=${loc.id})}" class="btn btn-sm btn-outline-info"><i class="bi bi-eye"></i></a>
+                                        <a th:href="@{/admin/locations/{id}/edit(id=${loc.id})}" class="btn btn-sm btn-outline-primary"><i class="bi bi-pencil"></i></a>
+                                    </td>
+                                </tr>
+                                <tr th:if="${#lists.isEmpty(locations)}">
+                                    <td colspan="5" class="text-center py-3 text-muted">No locations yet.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pharmacists Tab -->
+        <div class="tab-pane fade" id="pharmacists" role="tabpanel">
+            <div class="card shadow-sm border-0">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0 align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Location</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="ph : ${pharmacists}">
+                                    <td th:text="${ph.firstName + ' ' + ph.lastName}">Name</td>
+                                    <td th:text="${ph.email}">email</td>
+                                    <td th:text="${ph.location != null ? ph.location.name : '—'}">Loc</td>
+                                    <td>
+                                        <span th:if="${ph.enabled}" class="badge bg-success">Active</span>
+                                        <span th:unless="${ph.enabled}" class="badge bg-danger">Inactive</span>
+                                    </td>
+                                </tr>
+                                <tr th:if="${#lists.isEmpty(pharmacists)}">
+                                    <td colspan="4" class="text-center py-3 text-muted">No pharmacists assigned.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sync Config Tab -->
+        <div class="tab-pane fade" id="sync" role="tabpanel">
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <p><strong>Sync Enabled:</strong>
+                        <span th:if="${pharmacy.syncEnabled}" class="badge bg-success">Yes</span>
+                        <span th:unless="${pharmacy.syncEnabled}" class="badge bg-secondary">No</span>
+                    </p>
+                    <p><strong>Endpoint URL:</strong> <span th:text="${pharmacy.syncEndpointUrl ?: '—'}">URL</span></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

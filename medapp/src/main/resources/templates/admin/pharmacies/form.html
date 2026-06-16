@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      layout:decorate="~{layout/admin}">
+<head>
+    <title>Pharmacy Form</title>
+</head>
+<body>
+
+<div layout:fragment="page-title" th:text="${pharmacyForm.id == null ? 'Add New Pharmacy' : 'Edit Pharmacy'}">
+    Pharmacy Form
+</div>
+
+<div layout:fragment="page-actions">
+    <a th:href="@{/admin/pharmacies}" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Back to List
+    </a>
+</div>
+
+<div layout:fragment="content">
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card shadow-sm border-0">
+                <div class="card-body p-4">
+
+                    <form th:action="${pharmacyForm.id == null ? '/admin/pharmacies' : '/admin/pharmacies/' + pharmacyForm.id}"
+                          method="post" th:object="${pharmacyForm}">
+
+                        <div class="row mb-3">
+                            <div class="col-md-8">
+                                <label for="name" class="form-label">Pharmacy Name *</label>
+                                <input type="text" class="form-control" th:field="*{name}" th:classappend="${#fields.hasErrors('name')} ? 'is-invalid'">
+                                <div class="invalid-feedback" th:if="${#fields.hasErrors('name')}" th:errors="*{name}"></div>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="cui" class="form-label">CUI</label>
+                                <input type="text" class="form-control" th:field="*{cui}" placeholder="e.g. RO12345678">
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="phone" class="form-label">Phone</label>
+                                <input type="text" class="form-control" th:field="*{phone}">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="email" class="form-label">Email</label>
+                                <input type="email" class="form-control" th:field="*{email}">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="website" class="form-label">Website</label>
+                            <input type="url" class="form-control" th:field="*{website}" placeholder="https://...">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="logoUrl" class="form-label">Logo URL</label>
+                            <input type="url" class="form-control" th:field="*{logoUrl}">
+                        </div>
+
+                        <!-- Owner selector (SUPER_USER only) -->
+                        <div sec:authorize="hasAuthority('SUPER_USER')" class="mb-3">
+                            <label for="ownerId" class="form-label">Owner (Pharm Owner)</label>
+                            <select class="form-select" th:field="*{ownerId}">
+                                <option value="">Select owner...</option>
+                                <option th:each="o : ${owners}" th:value="${o.id}"
+                                        th:text="${o.firstName + ' ' + o.lastName + ' (' + (o.companyName != null ? o.companyName : '—') + ')'}"></option>
+                            </select>
+                        </div>
+
+                        <hr>
+
+                        <h6 class="mb-3">Sync Configuration</h6>
+
+                        <div class="row mb-3">
+                            <div class="col-md-4 d-flex align-items-end">
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" th:field="*{syncEnabled}" id="syncEnabled">
+                                    <label class="form-check-label" for="syncEnabled">Sync Enabled</label>
+                                </div>
+                            </div>
+                            <div class="col-md-8">
+                                <label for="syncEndpointUrl" class="form-label">Sync Endpoint URL</label>
+                                <input type="url" class="form-control" th:field="*{syncEndpointUrl}" placeholder="https://api.pharmacy.com/sync">
+                            </div>
+                        </div>
+
+                        <hr>
+
+                        <div class="d-flex justify-content-end">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-save"></i> Save Pharmacy
+                            </button>
+                        </div>
+
+                    </form>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

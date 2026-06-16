@@ -5,11 +5,15 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ro.medfinder.medapp.dto.RegisterRequest;
-import ro.medfinder.medapp.entity.Pharmacist;
-import ro.medfinder.medapp.entity.PharmOwner;
-import ro.medfinder.medapp.entity.User;
+import ro.medfinder.medapp.dto.UserForm;
+import ro.medfinder.medapp.entity.*;
 import ro.medfinder.medapp.entity.enums.Role;
-import ro.medfinder.medapp.repository.UserRepository;
+import ro.medfinder.medapp.repository.*;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -17,6 +21,10 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final ClientRepository clientRepository;
+    private final PharmOwnerRepository pharmOwnerRepository;
+    private final PharmacistRepository pharmacistRepository;
+    private final LocationRepository locationRepository;
 
     @Transactional
     public void registerUser(RegisterRequest request) {
@@ -52,6 +60,65 @@ public class UserService {
             throw new IllegalArgumentException("Invalid role for registration");
         }
 
+        userRepository.save(user);
+    }
+
+    // ── Phase 2: User management methods ─────────────────────────
+
+    public Page<Client> getAllClients(Pageable pageable) {
+        return clientRepository.findAll(pageable);
+    }
+
+    public Page<PharmOwner> getAllPharmOwners(Pageable pageable) {
+        return pharmOwnerRepository.findAll(pageable);
+    }
+
+    public Page<Pharmacist> getPharmacistsForUser(User user, Pageable pageable) {
+        if (user.getRole() == Role.SUPER_USER) {
+            return pharmacistRepository.findAll(pageable);
+        }
+        return pharmacistRepository.findByLocationPharmacyOwnerId(user.getId(), pageable);
+    }
+
+    public User getUserById(Long id) {
+        return userRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+    }
+
+    @Transactional
+    public void updateUser(Long id, UserForm form) {
+        User user = getUserById(id);
+
+        user.setFirstName(form.getFirstName());
+        user.setLastName(form.getLastName());
+        user.setPhone(form.getPhone());
+
+        // Email change — check uniqueness
+        if (!user.getEmail().equals(form.getEmail())) {
+            if (userRepository.existsByEmail(form.getEmail())) {
+                throw new IllegalArgumentException("Email already exists");
+            }
+            user.setEmail(form.getEmail());
+        }
+
+        // Role-specific fields
+        if (user instanceof PharmOwner pharmOwner) {
+            pharmOwner.setCompanyName(form.getCompanyName());
+        }
+
+        if (user instanceof Pharmacist pharmacist && form.getLocationId() != null) {
+            Location location = locationRepository.findById(form.getLocationId())
+                    .orElseThrow(() -> new IllegalArgumentException("Location not found"));
+            pharmacist.setLocation(location);
+        }
+
+        userRepository.save(user);
+    }
+
+    @Transactional
+    public void toggleEnabled(Long id) {
+        User user = getUserById(id);
+        user.setEnabled(!user.getEnabled());
         userRepository.save(user);
     }
 }

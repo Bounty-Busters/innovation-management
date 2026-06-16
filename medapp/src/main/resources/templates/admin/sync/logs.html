@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/admin}">
+<head>
+    <title>Sync Logs</title>
+</head>
+<body>
+
+<div layout:fragment="page-title">Sync Logs</div>
+
+<div layout:fragment="page-actions">
+    <a th:href="@{/admin/sync}" class="btn btn-sm btn-primary">
+        <i class="bi bi-cloud-upload"></i> New Sync
+    </a>
+</div>
+
+<div layout:fragment="content">
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0 align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Started At</th>
+                            <th>Pharmacy</th>
+                            <th>Type</th>
+                            <th>Status</th>
+                            <th>File Name</th>
+                            <th>Processed</th>
+                            <th>Failed</th>
+                            <th>Triggered By</th>
+                            <th>Error Details</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="log : ${logPage.content}">
+                            <td th:text="${#temporals.format(log.startedAt, 'dd.MM.yyyy HH:mm:ss')}">01.01.2026</td>
+                            <td class="fw-bold" th:text="${log.pharmacy.name}">Pharmacy</td>
+                            <td th:text="${log.syncType}">CSV</td>
+                            <td>
+                                <span class="badge"
+                                      th:classappend="${log.status.name() == 'SUCCESS' ? 'bg-success' :
+                                                        log.status.name() == 'IN_PROGRESS' ? 'bg-info' :
+                                                        log.status.name() == 'PARTIAL_FAILURE' ? 'bg-warning text-dark' : 'bg-danger'}"
+                                      th:text="${log.status}">STATUS</span>
+                            </td>
+                            <td th:text="${log.fileName ?: '—'}">file.csv</td>
+                            <td class="text-success fw-bold" th:text="${log.processedRecords}">0</td>
+                            <td class="text-danger fw-bold" th:text="${log.failedRecords}">0</td>
+                            <td th:text="${log.triggeredBy != null ? log.triggeredBy.firstName + ' ' + log.triggeredBy.lastName : 'System'}">Admin</td>
+                            <td>
+                                <button th:if="${log.errorDetails != null and !log.errorDetails.isEmpty()}" 
+                                        type="button" class="btn btn-sm btn-outline-danger" 
+                                        data-bs-toggle="popover" title="Error Details" 
+                                        th:attr="data-bs-content=${log.errorDetails}">
+                                    <i class="bi bi-exclamation-triangle"></i> View
+                                </button>
+                                <span th:unless="${log.errorDetails != null and !log.errorDetails.isEmpty()}" class="text-muted">—</span>
+                            </td>
+                        </tr>
+                        <tr th:if="${logPage.empty}">
+                            <td colspan="9" class="text-center py-4 text-muted">No sync logs found.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Pagination -->
+        <th:block th:replace="~{fragments/pagination :: pagination(pageData=${logPage})}"></th:block>
+    </div>
+</div>
+
+<th:block layout:fragment="scripts">
+    <script>
+        // Initialize Bootstrap popovers for error details
+        document.addEventListener("DOMContentLoaded", function() {
+            var popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'))
+            var popoverList = popoverTriggerList.map(function (popoverTriggerEl) {
+                return new bootstrap.Popover(popoverTriggerEl)
+            })
+        });
+    </script>
+</th:block>
+
+</body>
+</html>

@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/admin}">
+<head>
+    <title>Edit User</title>
+</head>
+<body>
+
+<div layout:fragment="page-title" th:text="'Edit User: ' + ${userForm.firstName} + ' ' + ${userForm.lastName}">Edit User</div>
+
+<div layout:fragment="page-actions">
+    <a th:href="${userForm.role == 'CLIENT' ? '/admin/users/clients' :
+                  userForm.role == 'PHARM_OWNER' ? '/admin/users/pharm-owners' :
+                  userForm.role == 'PHARMACIST' ? '/admin/users/pharmacists' : '/admin/dashboard'}"
+       class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Back
+    </a>
+</div>
+
+<div layout:fragment="content">
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card shadow-sm border-0">
+                <div class="card-body p-4">
+
+                    <form th:action="@{/admin/users/{id}(id=${userForm.id})}"
+                          method="post" th:object="${userForm}">
+
+                        <input type="hidden" th:field="*{role}">
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="firstName" class="form-label">First Name *</label>
+                                <input type="text" class="form-control" th:field="*{firstName}" th:classappend="${#fields.hasErrors('firstName')} ? 'is-invalid'">
+                                <div class="invalid-feedback" th:if="${#fields.hasErrors('firstName')}" th:errors="*{firstName}"></div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="lastName" class="form-label">Last Name *</label>
+                                <input type="text" class="form-control" th:field="*{lastName}" th:classappend="${#fields.hasErrors('lastName')} ? 'is-invalid'">
+                                <div class="invalid-feedback" th:if="${#fields.hasErrors('lastName')}" th:errors="*{lastName}"></div>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="email" class="form-label">Email *</label>
+                                <input type="email" class="form-control" th:field="*{email}" th:classappend="${#fields.hasErrors('email')} ? 'is-invalid'">
+                                <div class="invalid-feedback" th:if="${#fields.hasErrors('email')}" th:errors="*{email}"></div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="phone" class="form-label">Phone</label>
+                                <input type="text" class="form-control" th:field="*{phone}">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Role</label>
+                            <input type="text" class="form-control" th:value="${userForm.role}" readonly disabled>
+                        </div>
+
+                        <!-- PHARM_OWNER specific -->
+                        <div th:if="${userForm.role == 'PHARM_OWNER'}" class="mb-3">
+                            <label for="companyName" class="form-label">Company Name</label>
+                            <input type="text" class="form-control" th:field="*{companyName}">
+                        </div>
+
+                        <!-- PHARMACIST specific -->
+                        <div th:if="${userForm.role == 'PHARMACIST'}" class="mb-3">
+                            <label for="locationId" class="form-label">Assigned Location</label>
+                            <select class="form-select" th:field="*{locationId}">
+                                <option value="">Not assigned</option>
+                                <option th:each="loc : ${locations}" th:value="${loc.id}"
+                                        th:text="${loc.pharmacy.name + ' — ' + loc.name}"></option>
+                            </select>
+                        </div>
+
+                        <hr>
+
+                        <div class="d-flex justify-content-end">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-save"></i> Save Changes
+                            </button>
+                        </div>
+
+                    </form>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

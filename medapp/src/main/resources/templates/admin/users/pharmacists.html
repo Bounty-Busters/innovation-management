@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/admin}">
+<head>
+    <title>Pharmacists</title>
+</head>
+<body>
+
+<div layout:fragment="page-title">Pharmacists</div>
+
+<div layout:fragment="content">
+
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0 align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Pharmacy</th>
+                            <th>Location</th>
+                            <th>Status</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="ph : ${pharmacistPage.content}">
+                            <td class="fw-bold" th:text="${ph.firstName + ' ' + ph.lastName}">Name</td>
+                            <td th:text="${ph.email}">email</td>
+                            <td th:text="${ph.location != null and ph.location.pharmacy != null ? ph.location.pharmacy.name : '—'}">Pharmacy</td>
+                            <td th:text="${ph.location != null ? ph.location.name : 'Not assigned'}">Location</td>
+                            <td>
+                                <span th:if="${ph.enabled}" class="badge bg-success">Active</span>
+                                <span th:unless="${ph.enabled}" class="badge bg-danger">Inactive</span>
+                            </td>
+                            <td class="text-end">
+                                <a th:href="@{/admin/users/{id}/edit(id=${ph.id})}" class="btn btn-sm btn-outline-primary" title="Edit / Assign Location">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <form th:action="@{/admin/users/{id}/toggle(id=${ph.id})}" method="post" class="d-inline">
+                                    <button type="submit" class="btn btn-sm"
+                                            th:classappend="${ph.enabled ? 'btn-outline-warning' : 'btn-outline-success'}"
+                                            th:title="${ph.enabled ? 'Disable' : 'Enable'}">
+                                        <i class="bi" th:classappend="${ph.enabled ? 'bi-person-x' : 'bi-person-check'}"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        <tr th:if="${pharmacistPage.empty}">
+                            <td colspan="6" class="text-center py-4 text-muted">No pharmacists found.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <th:block th:replace="~{fragments/pagination :: pagination(pageData=${pharmacistPage})}"></th:block>
+    </div>
+</div>
+
+</body>
+</html>
