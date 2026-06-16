@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<body>
+    <nav th:fragment="sidebar" id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block sidebar collapse">
+        <div class="position-sticky sidebar-sticky">
+            
+            <ul class="nav flex-column mb-3">
+                <li class="nav-item">
+                    <a class="nav-link" th:classappend="${requestURI != null and requestURI.startsWith('/admin/dashboard') ? 'active' : ''}" th:href="@{/admin/dashboard}">
+                        <i class="bi bi-speedometer2"></i> Dashboard
+                    </a>
+                </li>
+            </ul>
+
+            <!-- SUPER_USER Menu -->
+            <th:block sec:authorize="hasAuthority('SUPER_USER')">
+                <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted text-uppercase">
+                    <span>Management</span>
+                </h6>
+                <ul class="nav flex-column mb-3">
+                    <li class="nav-item">
+                        <a class="nav-link" th:classappend="${requestURI != null and requestURI.startsWith('/admin/medications') ? 'active' : ''}" th:href="@{/admin/medications}">
+                            <i class="bi bi-capsule"></i> Medications
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{/admin/pharmacies}">
+                            <i class="bi bi-hospital"></i> Pharmacies
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{/admin/locations}">
+                            <i class="bi bi-geo-alt"></i> Locations
+                        </a>
+                    </li>
+                </ul>
+
+                <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted text-uppercase">
+                    <span>Users</span>
+                </h6>
+                <ul class="nav flex-column mb-3">
+                    <li class="nav-item"><a class="nav-link" href="#"><i class="bi bi-people"></i> Clients</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#"><i class="bi bi-building"></i> Pharm Owners</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#"><i class="bi bi-person-badge"></i> Pharmacists</a></li>
+                </ul>
+            </th:block>
+
+            <!-- PHARM_OWNER Menu -->
+            <th:block sec:authorize="hasAuthority('PHARM_OWNER')">
+                <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted text-uppercase">
+                    <span>My Pharmacies</span>
+                </h6>
+                <ul class="nav flex-column mb-3">
+                    <li class="nav-item"><a class="nav-link" href="#"><i class="bi bi-hospital"></i> Pharmacies</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#"><i class="bi bi-geo-alt"></i> Locations</a></li>
+                    <li class="nav-item">
+                        <a class="nav-link" th:classappend="${requestURI != null and requestURI.startsWith('/admin/medications') ? 'active' : ''}" th:href="@{/admin/medications}">
+                            <i class="bi bi-box-seam"></i> Med Stocks
+                        </a>
+                    </li>
+                    <li class="nav-item"><a class="nav-link" href="#"><i class="bi bi-person-badge"></i> Pharmacists</a></li>
+                </ul>
+            </th:block>
+
+            <!-- PHARMACIST Menu -->
+            <th:block sec:authorize="hasAuthority('PHARMACIST')">
+                <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted text-uppercase">
+                    <span>My Location</span>
+                </h6>
+                <ul class="nav flex-column mb-3">
+                    <li class="nav-item"><a class="nav-link" href="#"><i class="bi bi-info-circle"></i> Location Details</a></li>
+                    <li class="nav-item">
+                        <a class="nav-link" th:classappend="${requestURI != null and requestURI.startsWith('/admin/medications') ? 'active' : ''}" th:href="@{/admin/medications}">
+                            <i class="bi bi-box-seam"></i> Med Stocks
+                        </a>
+                    </li>
+                </ul>
+            </th:block>
+
+            <!-- COMMON OPERATIONS Menu -->
+            <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted text-uppercase">
+                <span>Operations</span>
+            </h6>
+            <ul class="nav flex-column mb-3">
+                <li class="nav-item"><a class="nav-link" href="#"><i class="bi bi-cart3"></i> Orders</a></li>
+                <li class="nav-item"><a class="nav-link" href="#"><i class="bi bi-arrow-repeat"></i> Sync Data</a></li>
+            </ul>
+
+        </div>
+    </nav>
+</body>
+</html>

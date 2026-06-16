@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      layout:decorate="~{layout/admin}">
+<head>
+    <title>Medications</title>
+</head>
+<body>
+
+<div layout:fragment="page-title">Medications Management</div>
+
+<div layout:fragment="page-actions">
+    <a sec:authorize="hasAuthority('SUPER_USER')" th:href="@{/admin/medications/new}" class="btn btn-sm btn-primary">
+        <i class="bi bi-plus-circle"></i> Add New
+    </a>
+</div>
+
+<div layout:fragment="content">
+    
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body">
+            <form th:action="@{/admin/medications}" method="get" class="row g-3 align-items-center">
+                <div class="col-auto">
+                    <input type="text" class="form-control" name="search" th:value="${search}" placeholder="Search by name...">
+                </div>
+                <div class="col-auto">
+                    <button type="submit" class="btn btn-outline-primary">Search</button>
+                    <a th:href="@{/admin/medications}" class="btn btn-outline-secondary" th:if="${search != null}">Clear</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0 align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>EAN</th>
+                            <th>Name</th>
+                            <th>Substance</th>
+                            <th>Form & Dosage</th>
+                            <th>Category</th>
+                            <th>Prescription</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="med : ${medicationPage.content}">
+                            <td th:text="${med.ean}">123</td>
+                            <td class="fw-bold" th:text="${med.name}">Aspirin</td>
+                            <td th:text="${med.activeSubstance}">ASA</td>
+                            <td>
+                                <span th:text="${med.form}">TABLET</span>
+                                <span class="text-muted ms-1" th:text="${med.dosage}">500mg</span>
+                            </td>
+                            <td><span class="badge bg-secondary" th:text="${med.category}">Category</span></td>
+                            <td>
+                                <span th:if="${med.prescriptionRequired}" class="badge bg-danger">Yes</span>
+                                <span th:unless="${med.prescriptionRequired}" class="badge bg-success">No</span>
+                            </td>
+                            <td class="text-end">
+                                <a sec:authorize="hasAuthority('SUPER_USER')" th:href="@{/admin/medications/{id}/edit(id=${med.id})}" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <form sec:authorize="hasAuthority('SUPER_USER')" th:action="@{/admin/medications/{id}/delete(id=${med.id})}" method="post" class="d-inline">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        <tr th:if="${medicationPage.empty}">
+                            <td colspan="7" class="text-center py-4 text-muted">No medications found.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <div class="card-footer bg-white border-0 py-3" th:if="${medicationPage.totalPages > 1}">
+            <nav>
+                <ul class="pagination mb-0 justify-content-center">
+                    <li class="page-item" th:classappend="${medicationPage.first ? 'disabled' : ''}">
+                        <a class="page-link" th:href="@{/admin/medications(page=${medicationPage.number - 1}, search=${search})}">Previous</a>
+                    </li>
+                    <li class="page-item disabled">
+                        <span class="page-link">Page [[${medicationPage.number + 1}]] of [[${medicationPage.totalPages}]]</span>
+                    </li>
+                    <li class="page-item" th:classappend="${medicationPage.last ? 'disabled' : ''}">
+                        <a class="page-link" th:href="@{/admin/medications(page=${medicationPage.number + 1}, search=${search})}">Next</a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>
