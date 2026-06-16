@@ -22,7 +22,7 @@ public class SecurityConfig {
                 .requestMatchers("/auth/**").permitAll()
                 .requestMatchers("/css/**", "/js/**", "/images/**").permitAll()
                 .requestMatchers("/h2-console/**").permitAll()
-                .requestMatchers("/", "/m/**", "/api/nearby", "/api/reserve").permitAll()
+                .requestMatchers("/", "/m/**", "/api/nearby", "/api/reserve", "/api/notifications/**", "/ws-notifications/**").permitAll()
                 .requestMatchers("/api/client/**").hasAuthority("CLIENT")
                 .requestMatchers("/admin/**").authenticated()
                 .anyRequest().authenticated()
@@ -46,7 +46,7 @@ public class SecurityConfig {
 
         // H2 console requires frames + CSRF disabled for its own POST requests
         http.headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()));
-        http.csrf(csrf -> csrf.ignoringRequestMatchers("/h2-console/**", "/api/**"));
+        http.csrf(csrf -> csrf.ignoringRequestMatchers("/h2-console/**", "/api/**", "/ws-notifications/**"));
 
         return http.build();
     }
