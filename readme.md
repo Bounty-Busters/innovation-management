@@ -18,6 +18,21 @@ La `/admin/` te poti loga cu
 mail: `admin@medfinder.ro`
 pass: `admin123`
 
+---
+
+Daca vrei sa vezi toate scripturile, insteleaza [just](https://github.com/casey/just#cross-platform), care e un fel de Makefile gen, si te lasa sa vezi toate scripturikle noastre si sa le rulezi usorel:
+
+```bash
+viktorashi@viktorashis-MacBook-Air.local innovation-management/medapp [feat/user-frontend]
+just
+just -l
+Available recipes:
+    default
+    run        # Docker compose-u cu mailpit si ce-o mai fi
+    run-single
+    test
+```
+
 Sau individual doar java-u cu:
 
 ```bash
