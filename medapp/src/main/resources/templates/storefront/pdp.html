@@ -67,9 +67,11 @@
             
             <!-- Slider under the map -->
             <div class="mf-glass-card" style="padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; gap: 15px; background: rgba(36, 40, 59, 0.85); border-radius: var(--radius-md); border: 1px solid var(--clr-border); backdrop-filter: blur(12px);">
-                <span style="font-weight: 500; color: var(--clr-text-muted); font-size: 14px; white-space: nowrap;">
-                    Radius: <span id="pdpRadiusVal" style="color: var(--clr-accent); font-weight: 700; font-family: var(--font-display); font-size: 16px;">10</span> km
-                </span>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-weight: 500; color: var(--clr-text-muted); font-size: 14px; white-space: nowrap;">Radius:</span>
+                    <input type="number" id="pdpRadiusInput" min="1" max="100" value="10" style="width: 55px; background: rgba(0,0,0,0.3); border: 1px solid var(--clr-border); color: var(--clr-accent); font-weight: 700; font-family: var(--font-display); font-size: 15px; border-radius: 4px; padding: 2px 6px; text-align: center; outline: none; -moz-appearance: textfield;">
+                    <span style="font-weight: 500; color: var(--clr-text-muted); font-size: 14px;">km</span>
+                </div>
                 <input type="range" id="pdpSearchRadius" class="mf-form-control" style="flex-grow: 1; margin: 0; padding: 0; height: 6px; background: rgba(255,255,255,0.1); accent-color: var(--clr-accent); cursor: pointer;" min="1" max="100" value="10">
             </div>
         </div>
@@ -171,10 +173,10 @@
                 let searchRadiusKm = parseFloat(localStorage.getItem('mf_search_radius') || '10');
                 
                 const pdpSlider = document.getElementById('pdpSearchRadius');
-                const pdpRadiusVal = document.getElementById('pdpRadiusVal');
+                const pdpRadiusInput = document.getElementById('pdpRadiusInput');
                 pdpSlider.value = searchRadiusKm;
-                pdpRadiusVal.innerText = searchRadiusKm;
-                           let userLat = userLatStr ? parseFloat(userLatStr) : 44.4268;
+                pdpRadiusInput.value = searchRadiusKm;
+                let userLat = userLatStr ? parseFloat(userLatStr) : 44.4268;
                 let userLng = userLngStr ? parseFloat(userLngStr) : 26.1025;
                 let radiusCircle = null;
 
@@ -273,33 +275,65 @@
                 drawUserLocation(userLat, userLng);
                 renderStocks(searchRadiusKm);
 
-                // Live Slider Update
-                pdpSlider.addEventListener('input', (e) => {
-                    searchRadiusKm = parseFloat(e.target.value);
-                    pdpRadiusVal.innerText = searchRadiusKm;
+                function updateRadius(val, updateInputSource = true) {
+                    let parsed = parseFloat(val);
+                    if (isNaN(parsed) || parsed < 1) parsed = 1;
+                    if (parsed > 100) parsed = 100;
+                    
+                    searchRadiusKm = parsed;
+                    if (updateInputSource) {
+                        pdpSlider.value = searchRadiusKm;
+                        pdpRadiusInput.value = searchRadiusKm;
+                    }
+                    
                     if (radiusCircle) {
                         radiusCircle.setRadius(searchRadiusKm * 1000);
                         map.fitBounds(radiusCircle.getBounds(), { animate: false });
                     }
                     renderStocks(searchRadiusKm);
+                }
+
+                // Live Slider Update
+                pdpSlider.addEventListener('input', (e) => {
+                    updateRadius(e.target.value, false);
+                    pdpRadiusInput.value = e.target.value;
+                });
+
+                pdpRadiusInput.addEventListener('input', (e) => {
+                    updateRadius(e.target.value, false);
+                    pdpSlider.value = e.target.value;
                 });
 
                 // Save on change complete
-                pdpSlider.addEventListener('change', (e) => {
-                    const newRadius = e.target.value;
-                    localStorage.setItem('mf_search_radius', newRadius);
+                function commitRadiusChange(val) {
+                    let parsed = parseFloat(val);
+                    if (isNaN(parsed) || parsed < 1) parsed = 1;
+                    if (parsed > 100) parsed = 100;
+                    
+                    pdpRadiusInput.value = parsed;
+                    pdpSlider.value = parsed;
+                    
+                    localStorage.setItem('mf_search_radius', parsed);
                     const isAuth = document.getElementById('notif-bell') !== null;
                     if (isAuth) {
                         const fd = new URLSearchParams();
-                        fd.append('val', newRadius);
+                        fd.append('val', parsed);
                         fetch('/api/client/settings/radius', { method: 'POST', body: fd }).catch(console.error);
                     }
+                }
+
+                pdpSlider.addEventListener('change', (e) => {
+                    commitRadiusChange(e.target.value);
+                });
+
+                pdpRadiusInput.addEventListener('change', (e) => {
+                    commitRadiusChange(e.target.value);
                 });
 
                 window.addEventListener('radiusSynced', (e) => {
                     searchRadiusKm = e.detail;
                     pdpSlider.value = searchRadiusKm;
-                    pdpRadiusVal.innerText = searchRadiusKm;
+                    pdpRadiusInput.value = searchRadiusKm;
                     if (radiusCircle) {
                         radiusCircle.setRadius(searchRadiusKm * 1000);
                         map.fitBounds(radiusCircle.getBounds(), { animate: false });

@@ -26,9 +26,11 @@
             </div>
             
             <div style="display: flex; align-items: center; gap: 16px; min-width: 280px; flex-grow: 1; max-width: 480px; justify-content: flex-end;">
-                <label for="homeSearchRadius" style="margin: 0; font-weight: 500; color: var(--clr-text-muted); font-size: 14px; white-space: nowrap;">
-                    Radius: <span id="homeRadiusVal" style="color: var(--clr-accent); font-weight: 700; font-family: var(--font-display); font-size: 16px;">10</span> km
-                </label>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-weight: 500; color: var(--clr-text-muted); font-size: 14px; white-space: nowrap;">Radius:</span>
+                    <input type="number" id="homeRadiusInput" min="1" max="100" value="10" style="width: 55px; background: rgba(0,0,0,0.3); border: 1px solid var(--clr-border); color: var(--clr-accent); font-weight: 700; font-family: var(--font-display); font-size: 15px; border-radius: 4px; padding: 2px 6px; text-align: center; outline: none; -moz-appearance: textfield;">
+                    <span style="font-weight: 500; color: var(--clr-text-muted); font-size: 14px;">km</span>
+                </div>
                 <input type="range" id="homeSearchRadius" class="mf-form-control" style="flex-grow: 1; margin: 0; padding: 0; height: 6px; background: rgba(255,255,255,0.1); accent-color: var(--clr-accent); cursor: pointer;" min="1" max="100" value="10">
             </div>
         </div>
@@ -74,10 +76,10 @@
             // 3. Geolocation & Radius
             let searchRadiusKm = parseFloat(localStorage.getItem('mf_search_radius') || '10');
             const radiusSlider = document.getElementById('homeSearchRadius');
-            const radiusValDisplay = document.getElementById('homeRadiusVal');
+            const radiusInput = document.getElementById('homeRadiusInput');
             
             radiusSlider.value = searchRadiusKm;
-            radiusValDisplay.innerText = searchRadiusKm;
+            radiusInput.value = searchRadiusKm;
             document.getElementById('radius-title').innerText = `Available in a ${searchRadiusKm}km Radius`;
 
             let userLat = 44.4268;
@@ -85,37 +87,69 @@
             let radiusCircle = null;
             const recenterBtn = document.getElementById('recenter-btn');
 
-             // Live Slider Update
-             radiusSlider.addEventListener('input', (e) => {
-                 searchRadiusKm = parseFloat(e.target.value);
-                 radiusValDisplay.innerText = searchRadiusKm;
-                 document.getElementById('radius-title').innerText = `Available in a ${searchRadiusKm}km Radius`;
-                 
-                 if (radiusCircle) {
-                     radiusCircle.setRadius(searchRadiusKm * 1000);
-                     map.fitBounds(radiusCircle.getBounds(), { animate: false });
-                 }
-             });
- 
-             // Save and Fetch on change complete (mouse up)
-             radiusSlider.addEventListener('change', (e) => {
-                 const newRadius = e.target.value;
-                 localStorage.setItem('mf_search_radius', newRadius);
-                 syncRadiusToBackend(newRadius);
-                 fetchNearbyStocks(userLat, userLng, newRadius);
-             });
- 
-             window.addEventListener('radiusSynced', (e) => {
-                 searchRadiusKm = e.detail;
-                 radiusSlider.value = searchRadiusKm;
-                 radiusValDisplay.innerText = searchRadiusKm;
-                 document.getElementById('radius-title').innerText = `Available in a ${searchRadiusKm}km Radius`;
-                 if (radiusCircle) {
-                     radiusCircle.setRadius(searchRadiusKm * 1000);
-                     map.fitBounds(radiusCircle.getBounds(), { animate: false });
-                 }
-                 fetchNearbyStocks(userLat, userLng, searchRadiusKm);
-             });
+            function updateRadius(val, updateInputSource = true) {
+                let parsed = parseFloat(val);
+                if (isNaN(parsed) || parsed < 1) parsed = 1;
+                if (parsed > 100) parsed = 100;
+                
+                searchRadiusKm = parsed;
+                if (updateInputSource) {
+                    radiusSlider.value = searchRadiusKm;
+                    radiusInput.value = searchRadiusKm;
+                }
+                
+                document.getElementById('radius-title').innerText = `Available in a ${searchRadiusKm}km Radius`;
+                
+                if (radiusCircle) {
+                    radiusCircle.setRadius(searchRadiusKm * 1000);
+                    map.fitBounds(radiusCircle.getBounds(), { animate: false });
+                }
+            }
+
+            // Live Slider Update
+            radiusSlider.addEventListener('input', (e) => {
+                updateRadius(e.target.value, false);
+                radiusInput.value = e.target.value;
+            });
+
+            radiusInput.addEventListener('input', (e) => {
+                updateRadius(e.target.value, false);
+                radiusSlider.value = e.target.value;
+            });
+
+            // Save and Fetch on change complete (mouse up / focus out / enter)
+            function commitRadiusChange(val) {
+                let parsed = parseFloat(val);
+                if (isNaN(parsed) || parsed < 1) parsed = 1;
+                if (parsed > 100) parsed = 100;
+                
+                radiusInput.value = parsed;
+                radiusSlider.value = parsed;
+                
+                localStorage.setItem('mf_search_radius', parsed);
+                syncRadiusToBackend(parsed);
+                fetchNearbyStocks(userLat, userLng, parsed);
+            }
+
+            radiusSlider.addEventListener('change', (e) => {
+                commitRadiusChange(e.target.value);
+            });
+
+            radiusInput.addEventListener('change', (e) => {
+                commitRadiusChange(e.target.value);
+            });
+
+            window.addEventListener('radiusSynced', (e) => {
+                searchRadiusKm = e.detail;
+                radiusSlider.value = searchRadiusKm;
+                radiusInput.value = searchRadiusKm;
+                document.getElementById('radius-title').innerText = `Available in a ${searchRadiusKm}km Radius`;
+                if (radiusCircle) {
+                    radiusCircle.setRadius(searchRadiusKm * 1000);
+                    map.fitBounds(radiusCircle.getBounds(), { animate: false });
+                }
+                fetchNearbyStocks(userLat, userLng, searchRadiusKm);
+            });
  
              function syncRadiusToBackend(rad) {
                  const isAuth = document.getElementById('notif-bell') !== null;
