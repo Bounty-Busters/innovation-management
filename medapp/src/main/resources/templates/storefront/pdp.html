@@ -3,6 +3,13 @@
       layout:decorate="~{layout/storefront}">
 <head>
     <title th:text="${medication.name} + ' - MedFinder'">MedFinder PDP</title>
+    <style>
+        .mf-price-row.highlighted {
+            background: var(--clr-surface-hover) !important;
+            border-color: var(--clr-secondary) !important;
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.2);
+        }
+    </style>
 </head>
 <body>
 
@@ -159,6 +166,22 @@
                          .bindPopup(`<b>${s.location.pharmacyName}</b><br>${s.price} RON`);
                          
                         markersByLocation[s.location.id] = marker;
+
+                        // Reverse highlighting listeners
+                        const row = document.querySelector(`.mf-price-row[data-location-id="${s.location.id}"]`);
+                        if (row) {
+                            marker.on('mouseover', () => {
+                                marker.setIcon(pharmaIconHover);
+                                marker.setZIndexOffset(1000);
+                                row.classList.add('highlighted');
+                                row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                            });
+                            marker.on('mouseout', () => {
+                                marker.setIcon(pharmaIcon);
+                                marker.setZIndexOffset(0);
+                                row.classList.remove('highlighted');
+                            });
+                        }
                     }
                 });
                 
