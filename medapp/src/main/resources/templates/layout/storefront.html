@@ -105,6 +105,21 @@
     
     <script>
         document.addEventListener("DOMContentLoaded", function() {
+            // Global Search Listener
+            const searchInput = document.getElementById('global-search');
+            if (searchInput) {
+                searchInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        const query = encodeURIComponent(e.target.value.trim());
+                        if (query) {
+                            window.location.href = `/?search=${query}`;
+                        } else {
+                            window.location.href = `/`;
+                        }
+                    }
+                });
+            }
+
             const bellWrapper = document.getElementById('notif-bell');
             if (!bellWrapper) return; // Not authenticated, no bell
 
@@ -128,7 +143,7 @@
             });
 
             // 1. Fetch Client ID
-            fetch('/api/notifications/me')
+            fetch('/api/notifications/me?_t=' + new Date().getTime())
                 .then(res => res.json())
                 .then(clientId => {
                     if(clientId === -1) return; // No client logged in (mock)
@@ -152,7 +167,7 @@
                 });
 
             function fetchUnreadNotifications() {
-                fetch('/api/notifications/unread')
+                fetch('/api/notifications/unread?_t=' + new Date().getTime())
                     .then(res => res.json())
                     .then(data => {
                         if (data.length > 0) {
@@ -185,13 +200,18 @@
 
             function markAsRead(id, element) {
                 fetch(`/api/notifications/${id}/read`, { method: 'POST' })
-                    .then(() => {
-                        element.remove();
-                        updateBadge(-1);
-                        if (notifList.children.length === 0) {
-                            notifList.innerHTML = '<div class="mf-notif-item"><div class="mf-notif-body">No unread notifications.</div></div>';
+                    .then(res => {
+                        if (res.ok) {
+                            element.remove();
+                            updateBadge(-1);
+                            if (notifList.children.length === 0) {
+                                notifList.innerHTML = '<div class="mf-notif-item"><div class="mf-notif-body">No unread notifications.</div></div>';
+                            }
+                        } else {
+                            console.error('Failed to mark notification as read:', res.status);
                         }
-                    });
+                    })
+                    .catch(err => console.error('Error marking as read:', err));
             }
 
             function updateBadge(change) {
@@ -226,14 +246,6 @@
                     toast.classList.remove('show');
                     setTimeout(() => toast.remove(), 400);
                 });
-
-                // Auto dismiss after 6s
-                setTimeout(() => {
-                    if(toast.parentNode) {
-                        toast.classList.remove('show');
-                        setTimeout(() => toast.remove(), 400);
-                    }
-                }, 6000);
             }
         });
     </script>

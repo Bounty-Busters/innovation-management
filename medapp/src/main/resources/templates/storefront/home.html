@@ -103,13 +103,32 @@
                 map.setView([userLat, userLng], 14);
             });
 
+            const urlParams = new URLSearchParams(window.location.search);
+            const searchQuery = urlParams.get('search');
+            if (searchQuery) {
+                const searchInput = document.getElementById('global-search');
+                if (searchInput) searchInput.value = searchQuery;
+            }
+
             function fetchNearbyStocks(lat, lng) {
                 fetch(`/api/nearby?lat=${lat}&lng=${lng}&radiusKm=10.0`)
                     .then(res => res.json())
                     .then(data => {
                         gridEl.innerHTML = ''; // clear loading
-                        if (data.length === 0) {
-                            gridEl.innerHTML = '<p>No medications found within 10km.</p>';
+                        
+                        let filteredData = data;
+                        if (searchQuery) {
+                            const sq = searchQuery.toLowerCase();
+                            filteredData = data.filter(stock => {
+                                const med = stock.medication;
+                                return med.name.toLowerCase().includes(sq) ||
+                                       (med.activeSubstance && med.activeSubstance.toLowerCase().includes(sq)) ||
+                                       med.ean.toLowerCase().includes(sq);
+                            });
+                        }
+
+                        if (filteredData.length === 0) {
+                            gridEl.innerHTML = `<p>No medications found within 10km${searchQuery ? ' matching "' + searchQuery + '"' : ''}.</p>`;
                             return;
                         }
 
@@ -120,7 +139,7 @@
                         // Keep track of locations to avoid duplicate markers on map (since one pharmacy can have multiple meds)
                         const locationMarkers = new Map(); 
 
-                        data.forEach(stock => {
+                        filteredData.forEach(stock => {
                             const ean = stock.medication.ean;
                             const loc = stock.location;
                             
