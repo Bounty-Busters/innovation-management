@@ -47,8 +47,25 @@ public class StorefrontController {
         Medication medication = medOpt.get();
         List<MedStock> stocks = medStockRepository.findByMedicationEanAndQuantityGreaterThan(ean, 0);
 
+        List<ro.medfinder.medapp.dto.NearbyStockDto> stockDtos = stocks.stream()
+                .map(stock -> ro.medfinder.medapp.dto.NearbyStockDto.builder()
+                        .id(stock.getId())
+                        .price(stock.getPrice())
+                        .quantity(stock.getQuantity())
+                        .location(ro.medfinder.medapp.dto.NearbyStockDto.LocationDto.builder()
+                                .id(stock.getLocation().getId())
+                                .name(stock.getLocation().getName())
+                                .pharmacyName(stock.getLocation().getPharmacy() != null ? stock.getLocation().getPharmacy().getName() : "")
+                                .address(stock.getLocation().getAddress())
+                                .city(stock.getLocation().getCity())
+                                .latitude(stock.getLocation().getLatitude())
+                                .longitude(stock.getLocation().getLongitude())
+                                .build())
+                        .build())
+                .toList();
+
         model.addAttribute("medication", medication);
-        model.addAttribute("stocks", stocks);
+        model.addAttribute("stocks", stockDtos);
         return "storefront/pdp";
     }
 
@@ -82,8 +99,11 @@ public class StorefrontController {
                         .form(stock.getMedication().getForm() != null ? stock.getMedication().getForm().name() : null)
                         .build())
                 .location(ro.medfinder.medapp.dto.NearbyStockDto.LocationDto.builder()
+                        .id(stock.getLocation().getId())
                         .name(stock.getLocation().getName())
+                        .pharmacyName(stock.getLocation().getPharmacy() != null ? stock.getLocation().getPharmacy().getName() : "")
                         .address(stock.getLocation().getAddress())
+                        .city(stock.getLocation().getCity())
                         .latitude(stock.getLocation().getLatitude())
                         .longitude(stock.getLocation().getLongitude())
                         .build())

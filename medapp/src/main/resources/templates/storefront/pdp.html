@@ -33,9 +33,9 @@
             
             <div th:each="stock : ${stocks}" class="mf-glass-card mf-price-row" th:id="'stock-row-' + ${stock.id}" th:attr="data-price=${stock.price}">
                 <div class="mf-pharmacy-info">
-                    <div class="mf-pharmacy-logo" th:text="${#strings.substring(stock.location.pharmacy.name, 0, 1)}">P</div>
+                    <div class="mf-pharmacy-logo" th:text="${#strings.substring(stock.location.pharmacyName, 0, 1)}">P</div>
                     <div class="mf-pharmacy-details">
-                        <h3 th:text="${stock.location.pharmacy.name}">Pharmacy Name</h3>
+                        <h3 th:text="${stock.location.pharmacyName}">Pharmacy Name</h3>
                         <p>
                             <i class="bi bi-geo-alt"></i> <span th:text="${stock.location.address} + ', ' + ${stock.location.city}">Address</span>
                         </p>
@@ -106,7 +106,7 @@
                     if(s.location.latitude && s.location.longitude) {
                         L.marker([s.location.latitude, s.location.longitude], {icon: pharmaIcon})
                          .addTo(map)
-                         .bindPopup(`<b>${s.location.pharmacy.name}</b><br>${s.price} RON`);
+                         .bindPopup(`<b>${s.location.pharmacyName}</b><br>${s.price} RON`);
                     }
                 });
             }
