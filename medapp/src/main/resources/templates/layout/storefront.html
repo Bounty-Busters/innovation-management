@@ -50,22 +50,14 @@
 
                     <!-- Unauthenticated -->
                     <div sec:authorize="isAnonymous()" style="display:flex; align-items:center; gap: 15px;">
-                        <div class="mf-bell-wrapper" onclick="openSettingsModal()" title="Settings">
-                            <i class="bi bi-gear"></i>
-                        </div>
                         <a href="/auth/login" class="mf-btn mf-btn-outline">Sign In</a>
                     </div>
                     
                     <!-- Authenticated -->
-                    <div sec:authorize="isAuthenticated()" style="display:flex; align-items:center; gap: 15px; position: relative;">
-                        <!-- Settings Icon -->
-                        <div class="mf-bell-wrapper" onclick="openSettingsModal()" title="Settings">
-                            <i class="bi bi-gear"></i>
-                        </div>
-                        
+                    <div sec:authorize="isAuthenticated()" id="acc-dropdown-wrapper" style="display:flex; align-items:center; gap: 15px; position: relative;">
                         <!-- Dropdown Trigger -->
                         <div style="display:flex; align-items:center; gap:8px; cursor:pointer;" onclick="document.getElementById('acc-dropdown').classList.toggle('show')">
-                            <i class="bi bi-person-circle" style="font-size: 1.2rem; color: var(--clr-primary);"></i>
+                            <i class="bi bi-person-circle" style="font-size: 1.2rem; color: var(--clr-accent);"></i>
                             <span style="color: var(--clr-text); font-weight: 500;" sec:authentication="name">User</span>
                             <i class="bi bi-chevron-down" style="font-size: 0.8rem; color: var(--clr-secondary);"></i>
                         </div>
@@ -74,8 +66,8 @@
                         <div id="acc-dropdown" class="mf-notif-dropdown" style="right: 0; min-width: 200px; padding-bottom: 8px;">
                             <div class="mf-notif-header" style="border-bottom: 1px solid var(--clr-border);">Account</div>
                             
-                            <a href="#" onclick="openSettingsModal()" style="display: block; padding: 12px 16px; color: var(--clr-text); text-decoration: none; border-bottom: 1px solid var(--clr-border); cursor: pointer;">
-                                <i class="bi bi-gear" style="margin-right: 8px;"></i> Settings
+                            <a sec:authorize="hasAnyAuthority('SUPER_USER', 'PHARM_OWNER', 'PHARMACIST')" th:href="@{/admin/dashboard}" style="display: block; padding: 12px 16px; color: var(--clr-text); text-decoration: none; border-bottom: 1px solid var(--clr-border); cursor: pointer;">
+                                <i class="bi bi-speedometer2" style="margin-right: 8px;"></i> Admin Dashboard
                             </a>
                             <a href="#" onclick="alert('Order History coming soon!')" style="display: block; padding: 12px 16px; color: var(--clr-text); text-decoration: none; border-bottom: 1px solid var(--clr-border); cursor: pointer;">
                                 <i class="bi bi-box-seam" style="margin-right: 8px;"></i> My Reservations
@@ -98,24 +90,6 @@
         <!-- Page specific content will go here -->
     </main>
 
-    <!-- Global Settings Modal -->
-    <div id="settingsModal" class="mf-modal-backdrop" style="display:none; z-index:9999;">
-        <div class="mf-glass-card mf-modal-content" style="max-width: 400px;">
-            <div class="mf-modal-header">
-                <h5 class="mf-modal-title"><i class="bi bi-gear"></i> Settings</h5>
-                <button type="button" class="mf-modal-close" onclick="closeSettingsModal()">&times;</button>
-            </div>
-            <div class="mf-modal-body">
-                <div class="mf-form-group">
-                    <label for="searchRadiusInput" class="mf-form-label">Search Radius: <span id="radiusValDisplay">10</span> km</label>
-                    <input type="range" id="searchRadiusInput" class="mf-form-control" min="1" max="100" value="10" oninput="document.getElementById('radiusValDisplay').innerText = this.value">
-                </div>
-            </div>
-            <div class="mf-modal-footer">
-                <button class="mf-btn mf-btn-primary" style="width: 100%;" onclick="saveSettings()">Save Configuration</button>
-            </div>
-        </div>
-    </div>
 
     <!-- Toast Container -->
     <div id="mf-toast-container"></div>
@@ -193,6 +167,13 @@
             document.addEventListener('click', function(e) {
                 if (!bellWrapper.contains(e.target)) {
                     bellWrapper.classList.remove('active');
+                }
+                const accWrapper = document.getElementById('acc-dropdown-wrapper');
+                if (accWrapper && !accWrapper.contains(e.target)) {
+                    const accDropdown = document.getElementById('acc-dropdown');
+                    if (accDropdown) {
+                        accDropdown.classList.remove('show');
+                    }
                 }
             });
 
@@ -303,33 +284,6 @@
             }
         });
 
-        // Global Settings Functions
-        function openSettingsModal() {
-            const rad = localStorage.getItem('mf_search_radius') || '10';
-            document.getElementById('searchRadiusInput').value = rad;
-            document.getElementById('radiusValDisplay').innerText = rad;
-            document.getElementById('settingsModal').style.display = 'flex';
-        }
-
-        function closeSettingsModal() {
-            document.getElementById('settingsModal').style.display = 'none';
-        }
-
-        function saveSettings() {
-            const rad = document.getElementById('searchRadiusInput').value;
-            localStorage.setItem('mf_search_radius', rad);
-            
-            const isAuth = document.getElementById('notif-bell') !== null;
-            if (isAuth) {
-                const fd = new URLSearchParams();
-                fd.append('val', rad);
-                fetch('/api/client/settings/radius', { method: 'POST', body: fd })
-                    .then(() => window.location.reload())
-                    .catch(() => window.location.reload());
-            } else {
-                window.location.reload();
-            }
-        }
     </script>
 </body>
 </html>

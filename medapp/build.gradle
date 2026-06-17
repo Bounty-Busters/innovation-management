@@ -33,6 +33,8 @@ dependencies {
 
 	runtimeOnly 'com.h2database:h2'
 
+	developmentOnly 'org.springframework.boot:spring-boot-devtools'
+
 	providedRuntime 'org.springframework.boot:spring-boot-starter-tomcat-runtime'
 	testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'

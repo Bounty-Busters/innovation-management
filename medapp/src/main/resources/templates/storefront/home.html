@@ -9,26 +9,31 @@
 <main layout:fragment="content">
     
     <!-- Hero / Map -->
-    <section class="mf-home-hero">
+    <section class="mf-home-hero" style="margin-bottom: 20px;">
         <div id="home-map" class="mf-map-container"></div>
-        <div class="mf-hero-overlay">
-            <button id="recenter-btn" class="mf-btn mf-btn-primary" style="padding: 8px 12px; margin-right: 12px; display: none;" title="Recenter to my location">
-                <i class="bi bi-crosshair"></i>
-            </button>
-            <div class="mf-pulse-dot"></div>
-            <span id="location-status" style="font-weight: 500;">Locating pharmacies near you...</span>
-        </div>
     </section>
 
     <!-- Main Content -->
     <div class="mf-container">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-            <h2 id="radius-title" class="mf-section-title" style="margin-bottom: 0;">Available Nearby</h2>
-            <div class="mf-glass-card" style="padding: 10px 15px; display: flex; align-items: center; gap: 15px; background: rgba(36, 40, 59, 0.8);">
-                <label for="homeSearchRadius" style="margin:0; font-weight: 500; color: var(--clr-text-muted);">Radius: <span id="homeRadiusVal">10</span> km</label>
-                <input type="range" id="homeSearchRadius" class="mf-form-control" style="width: 150px; margin: 0; padding: 0;" min="1" max="100" value="10">
+        <!-- Unified Control Widget directly under the map -->
+        <div class="mf-glass-card" style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 20px; margin-bottom: 32px; background: rgba(36, 40, 59, 0.85); border: 1px solid var(--clr-border); border-radius: var(--radius-md); padding: 16px 24px; backdrop-filter: blur(12px);">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <button id="recenter-btn" class="mf-btn mf-btn-outline" style="padding: 0; width: 36px; height: 36px; border-radius: 50%; display: none; align-items: center; justify-content: center; border-color: var(--clr-border);" title="Recenter to my location">
+                    <i class="bi bi-crosshair" style="font-size: 1.1rem; color: var(--clr-accent);"></i>
+                </button>
+                <div class="mf-pulse-dot" style="flex-shrink: 0;"></div>
+                <span id="location-status" style="font-weight: 500; color: var(--clr-text); font-size: 14px;">Locating pharmacies near you...</span>
+            </div>
+            
+            <div style="display: flex; align-items: center; gap: 16px; min-width: 280px; flex-grow: 1; max-width: 480px; justify-content: flex-end;">
+                <label for="homeSearchRadius" style="margin: 0; font-weight: 500; color: var(--clr-text-muted); font-size: 14px; white-space: nowrap;">
+                    Radius: <span id="homeRadiusVal" style="color: var(--clr-accent); font-weight: 700; font-family: var(--font-display); font-size: 16px;">10</span> km
+                </label>
+                <input type="range" id="homeSearchRadius" class="mf-form-control" style="flex-grow: 1; margin: 0; padding: 0; height: 6px; background: rgba(255,255,255,0.1); accent-color: var(--clr-accent); cursor: pointer;" min="1" max="100" value="10">
             </div>
         </div>
+
+        <h2 id="radius-title" class="mf-section-title" style="margin-bottom: 24px;">Available Nearby</h2>
         
         <div id="nearby-meds-grid" class="mf-grid">
             <!-- Populated via Javascript -->
@@ -80,98 +85,102 @@
             let radiusCircle = null;
             const recenterBtn = document.getElementById('recenter-btn');
 
-            // Live Slider Update
-            radiusSlider.addEventListener('input', (e) => {
-                searchRadiusKm = parseFloat(e.target.value);
-                radiusValDisplay.innerText = searchRadiusKm;
-                document.getElementById('radius-title').innerText = `Available in a ${searchRadiusKm}km Radius`;
-                
-                if (radiusCircle) {
-                    radiusCircle.setRadius(searchRadiusKm * 1000);
-                }
-            });
+             // Live Slider Update
+             radiusSlider.addEventListener('input', (e) => {
+                 searchRadiusKm = parseFloat(e.target.value);
+                 radiusValDisplay.innerText = searchRadiusKm;
+                 document.getElementById('radius-title').innerText = `Available in a ${searchRadiusKm}km Radius`;
+                 
+                 if (radiusCircle) {
+                     radiusCircle.setRadius(searchRadiusKm * 1000);
+                     map.fitBounds(radiusCircle.getBounds(), { animate: false });
+                 }
+             });
+ 
+             // Save and Fetch on change complete (mouse up)
+             radiusSlider.addEventListener('change', (e) => {
+                 const newRadius = e.target.value;
+                 localStorage.setItem('mf_search_radius', newRadius);
+                 syncRadiusToBackend(newRadius);
+                 fetchNearbyStocks(userLat, userLng, newRadius);
+             });
+ 
+             window.addEventListener('radiusSynced', (e) => {
+                 searchRadiusKm = e.detail;
+                 radiusSlider.value = searchRadiusKm;
+                 radiusValDisplay.innerText = searchRadiusKm;
+                 document.getElementById('radius-title').innerText = `Available in a ${searchRadiusKm}km Radius`;
+                 if (radiusCircle) {
+                     radiusCircle.setRadius(searchRadiusKm * 1000);
+                     map.fitBounds(radiusCircle.getBounds(), { animate: false });
+                 }
+                 fetchNearbyStocks(userLat, userLng, searchRadiusKm);
+             });
+ 
+             function syncRadiusToBackend(rad) {
+                 const isAuth = document.getElementById('notif-bell') !== null;
+                 if (isAuth) {
+                     const fd = new URLSearchParams();
+                     fd.append('val', rad);
+                     fetch('/api/client/settings/radius', { method: 'POST', body: fd }).catch(e => console.error(e));
+                 }
+             }
+ 
+             function drawUserLocation(lat, lng) {
+                 // User marker
+                 L.circleMarker([lat, lng], {
+                     radius: 8,
+                     fillColor: "var(--clr-secondary)",
+                     color: "#fff",
+                     weight: 2,
+                     opacity: 1,
+                     fillOpacity: 0.8
+                 }).addTo(map).bindPopup("You are here");
+ 
+                 // Search radius circle
+                 if (radiusCircle) {
+                     map.removeLayer(radiusCircle);
+                 }
+                 radiusCircle = L.circle([lat, lng], {
+                     color: 'var(--clr-accent)',
+                     fillColor: 'var(--clr-accent)',
+                     fillOpacity: 0.08,
+                     weight: 1.5,
+                     radius: searchRadiusKm * 1000 // meters
+                 }).addTo(map);
 
-            // Save and Fetch on change complete (mouse up)
-            radiusSlider.addEventListener('change', (e) => {
-                const newRadius = e.target.value;
-                localStorage.setItem('mf_search_radius', newRadius);
-                syncRadiusToBackend(newRadius);
-                fetchNearbyStocks(userLat, userLng, newRadius);
-            });
-
-            window.addEventListener('radiusSynced', (e) => {
-                searchRadiusKm = e.detail;
-                radiusSlider.value = searchRadiusKm;
-                radiusValDisplay.innerText = searchRadiusKm;
-                document.getElementById('radius-title').innerText = `Available in a ${searchRadiusKm}km Radius`;
-                if (radiusCircle) {
-                    radiusCircle.setRadius(searchRadiusKm * 1000);
-                }
-                fetchNearbyStocks(userLat, userLng, searchRadiusKm);
-            });
-
-            function syncRadiusToBackend(rad) {
-                const isAuth = document.getElementById('notif-bell') !== null;
-                if (isAuth) {
-                    const fd = new URLSearchParams();
-                    fd.append('val', rad);
-                    fetch('/api/client/settings/radius', { method: 'POST', body: fd }).catch(e => console.error(e));
-                }
-            }
-
-            function drawUserLocation(lat, lng) {
-                // User marker
-                L.circleMarker([lat, lng], {
-                    radius: 8,
-                    fillColor: "var(--clr-secondary)",
-                    color: "#fff",
-                    weight: 2,
-                    opacity: 1,
-                    fillOpacity: 0.8
-                }).addTo(map).bindPopup("You are here");
-
-                // Search radius circle
-                if (radiusCircle) {
-                    map.removeLayer(radiusCircle);
-                }
-                radiusCircle = L.circle([lat, lng], {
-                    color: 'var(--clr-primary)',
-                    fillColor: 'var(--clr-primary)',
-                    fillOpacity: 0.05,
-                    weight: 1,
-                    radius: searchRadiusKm * 1000 // meters
-                }).addTo(map);
-            }
-
-            if ("geolocation" in navigator) {
-                navigator.geolocation.getCurrentPosition(
-                    position => {
-                        userLat = position.coords.latitude;
-                        userLng = position.coords.longitude;
-                        
-                        map.setView([userLat, userLng], 14);
-                        statusEl.innerText = "Showing pharmacies near your exact location";
-                        recenterBtn.style.display = 'block';
-                        
-                        localStorage.setItem('mf_user_lat', userLat);
-                        localStorage.setItem('mf_user_lng', userLng);
-
-                        drawUserLocation(userLat, userLng);
-                        fetchNearbyStocks(userLat, userLng, searchRadiusKm);
-                    },
-                    error => {
-                        console.warn("Geolocation denied or failed", error);
-                        statusEl.innerText = "Approximate location used (Bucharest Default)";
-                        // Fallback to default
-                        drawUserLocation(userLat, userLng);
-                        fetchNearbyStocks(userLat, userLng, searchRadiusKm);
-                    }
-                );
-            } else {
-                statusEl.innerText = "Approximate location used (Bucharest Default)";
-                drawUserLocation(userLat, userLng);
-                fetchNearbyStocks(userLat, userLng, searchRadiusKm);
-            }
+                 map.fitBounds(radiusCircle.getBounds(), { animate: false });
+             }
+ 
+             if ("geolocation" in navigator) {
+                 navigator.geolocation.getCurrentPosition(
+                     position => {
+                         userLat = position.coords.latitude;
+                         userLng = position.coords.longitude;
+                         
+                         map.setView([userLat, userLng], 14);
+                         statusEl.innerText = "Showing pharmacies near your exact location";
+                         recenterBtn.style.display = 'inline-flex';
+                         
+                         localStorage.setItem('mf_user_lat', userLat);
+                         localStorage.setItem('mf_user_lng', userLng);
+ 
+                         drawUserLocation(userLat, userLng);
+                         fetchNearbyStocks(userLat, userLng, searchRadiusKm);
+                     },
+                     error => {
+                         console.warn("Geolocation denied or failed", error);
+                         statusEl.innerText = "Approximate location used (Bucharest Default)";
+                         // Fallback to default
+                         drawUserLocation(userLat, userLng);
+                         fetchNearbyStocks(userLat, userLng, searchRadiusKm);
+                     }
+                 );
+             } else {
+                 statusEl.innerText = "Approximate location used (Bucharest Default)";
+                 drawUserLocation(userLat, userLng);
+                 fetchNearbyStocks(userLat, userLng, searchRadiusKm);
+             }
 
             recenterBtn.addEventListener('click', () => {
                 map.setView([userLat, userLng], 14);

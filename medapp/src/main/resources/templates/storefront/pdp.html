@@ -31,19 +31,13 @@
         <div class="mf-price-list">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                 <h2 class="mf-section-title" style="margin-bottom: 0; font-size: 24px;">Available at</h2>
-                <div class="mf-glass-card" style="padding: 10px 15px; display: flex; align-items: center; gap: 15px; background: rgba(36, 40, 59, 0.8);">
-                    <label for="pdpSearchRadius" style="margin:0; font-weight: 500; color: var(--clr-text-muted); font-size: 14px;">Radius: <span id="pdpRadiusVal">10</span> km</label>
-                    <input type="range" id="pdpSearchRadius" class="mf-form-control" style="width: 120px; margin: 0; padding: 0;" min="1" max="100" value="10">
-                </div>
             </div>
             
             <div th:if="${#lists.isEmpty(stocks)}" class="mf-glass-card">
                 Out of stock everywhere nearby.
             </div>
-
-            <!-- Sort stocks by price using Thymeleaf stream/sort (assuming they are pre-sorted or we sort here, let's assume controller didn't sort, we can sort them via CSS flex order or let JS handle, actually standard Thymeleaf lacks easy sort, but we can iterate as is. The requirement said "sorted list of prices". We should have sorted it in the controller, but we can do it here via a utility or we just iterate.) -->
-            <!-- We'll assume the controller returns them as is, but we will sort them using JS or modify controller later. For now, just render them. -->
-            
+ 
+            <!-- Sort stocks by price using Thymeleaf stream/sort -->
             <div th:each="stock : ${stocks}" class="mf-glass-card mf-price-row" th:id="'stock-row-' + ${stock.id}" th:attr="data-price=${stock.price}, data-location-id=${stock.location.id}, data-lat=${stock.location.latitude}, data-lng=${stock.location.longitude}">
                 <div class="mf-pharmacy-info">
                     <div class="mf-pharmacy-logo" th:text="${#strings.substring(stock.location.pharmacyName, 0, 1)}">P</div>
@@ -66,9 +60,19 @@
             </div>
             
         </div>
-
-        <!-- Right: Map -->
-        <div id="pdp-map" class="mf-pdp-map mf-glass-card" style="padding:0; border:1px solid var(--clr-border);"></div>
+ 
+        <!-- Right Column: Map & Slider -->
+        <div style="display: flex; flex-direction: column; gap: 16px; position: sticky; top: 100px;">
+            <div id="pdp-map" class="mf-pdp-map mf-glass-card" style="padding:0; border:1px solid var(--clr-border); height: 400px; position: static;"></div>
+            
+            <!-- Slider under the map -->
+            <div class="mf-glass-card" style="padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; gap: 15px; background: rgba(36, 40, 59, 0.85); border-radius: var(--radius-md); border: 1px solid var(--clr-border); backdrop-filter: blur(12px);">
+                <span style="font-weight: 500; color: var(--clr-text-muted); font-size: 14px; white-space: nowrap;">
+                    Radius: <span id="pdpRadiusVal" style="color: var(--clr-accent); font-weight: 700; font-family: var(--font-display); font-size: 16px;">10</span> km
+                </span>
+                <input type="range" id="pdpSearchRadius" class="mf-form-control" style="flex-grow: 1; margin: 0; padding: 0; height: 6px; background: rgba(255,255,255,0.1); accent-color: var(--clr-accent); cursor: pointer;" min="1" max="100" value="10">
+            </div>
+        </div>
     </div>
 
     <!-- Vanilla CSS Reservation Modal -->
@@ -170,9 +174,35 @@
                 const pdpRadiusVal = document.getElementById('pdpRadiusVal');
                 pdpSlider.value = searchRadiusKm;
                 pdpRadiusVal.innerText = searchRadiusKm;
-                
-                let userLat = userLatStr ? parseFloat(userLatStr) : 44.4268;
+                           let userLat = userLatStr ? parseFloat(userLatStr) : 44.4268;
                 let userLng = userLngStr ? parseFloat(userLngStr) : 26.1025;
+                let radiusCircle = null;
+
+                function drawUserLocation(lat, lng) {
+                    // User marker
+                    L.circleMarker([lat, lng], {
+                        radius: 8,
+                        fillColor: "var(--clr-secondary)",
+                        color: "#fff",
+                        weight: 2,
+                        opacity: 1,
+                        fillOpacity: 0.8
+                    }).addTo(map).bindPopup("You are here");
+
+                    // Search radius circle
+                    if (radiusCircle) {
+                        map.removeLayer(radiusCircle);
+                    }
+                    radiusCircle = L.circle([lat, lng], {
+                        color: 'var(--clr-accent)',
+                        fillColor: 'var(--clr-accent)',
+                        fillOpacity: 0.08,
+                        weight: 1.5,
+                        radius: searchRadiusKm * 1000 // meters
+                    }).addTo(map);
+
+                    map.fitBounds(radiusCircle.getBounds(), { animate: false });
+                }
 
                 function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
                     const R = 6371; // Radius of the earth in km
@@ -237,19 +267,20 @@
                             }
                         }
                     });
-                    
-                    if (firstValidLat !== null) {
-                        map.setView([firstValidLat, firstValidLng], 13);
-                    }
                 }
                 
                 // Initial render
+                drawUserLocation(userLat, userLng);
                 renderStocks(searchRadiusKm);
 
                 // Live Slider Update
                 pdpSlider.addEventListener('input', (e) => {
                     searchRadiusKm = parseFloat(e.target.value);
                     pdpRadiusVal.innerText = searchRadiusKm;
+                    if (radiusCircle) {
+                        radiusCircle.setRadius(searchRadiusKm * 1000);
+                        map.fitBounds(radiusCircle.getBounds(), { animate: false });
+                    }
                     renderStocks(searchRadiusKm);
                 });
 
@@ -269,6 +300,10 @@
                     searchRadiusKm = e.detail;
                     pdpSlider.value = searchRadiusKm;
                     pdpRadiusVal.innerText = searchRadiusKm;
+                    if (radiusCircle) {
+                        radiusCircle.setRadius(searchRadiusKm * 1000);
+                        map.fitBounds(radiusCircle.getBounds(), { animate: false });
+                    }
                     renderStocks(searchRadiusKm);
                 });
 
