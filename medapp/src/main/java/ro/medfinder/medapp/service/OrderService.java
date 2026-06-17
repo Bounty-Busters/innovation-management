@@ -14,6 +14,8 @@ import ro.medfinder.medapp.repository.ClientRepository;
 import ro.medfinder.medapp.repository.MedStockRepository;
 import ro.medfinder.medapp.repository.OrderRepository;
 import ro.medfinder.medapp.service.ClientOrderService;
+import org.springframework.context.ApplicationEventPublisher;
+import ro.medfinder.medapp.event.OrderStatusChangedEvent;
 
 import java.time.LocalDateTime;
 import java.util.Map;
@@ -32,6 +34,7 @@ public class OrderService {
     private final MedStockRepository medStockRepository;
     private final ClientRepository clientRepository;
     private final ClientOrderService clientOrderService;
+    private final ApplicationEventPublisher eventPublisher;
 
     /** Valid status transitions per the state machine. */
     private static final Map<OrderStatus, Set<OrderStatus>> VALID_TRANSITIONS = Map.of(
@@ -105,8 +108,11 @@ public class OrderService {
         }
 
         order.setStatus(newStatus);
-        orderRepository.save(order);
-        log.info("Order {} status updated: {} → {}", order.getOrderNumber(), currentStatus, newStatus);
+        Order savedOrder = orderRepository.save(order);
+        log.info("Order {} status updated to {}", order.getOrderNumber(), newStatus);
+
+        // Publish event for notifications
+        eventPublisher.publishEvent(new OrderStatusChangedEvent(savedOrder));
     }
 
     // ── Private Helpers ─────────────────────────────────────────

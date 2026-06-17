@@ -22,14 +22,25 @@ public class SecurityConfig {
                 .requestMatchers("/auth/**").permitAll()
                 .requestMatchers("/css/**", "/js/**", "/images/**").permitAll()
                 .requestMatchers("/h2-console/**").permitAll()
+                .requestMatchers("/", "/m/**", "/api/nearby", "/api/reserve", "/api/notifications/**", "/ws-notifications/**").permitAll()
                 .requestMatchers("/api/client/**").hasAuthority("CLIENT")
-                .requestMatchers("/admin/**").authenticated()
+                .requestMatchers("/admin/**").hasAnyAuthority("SUPER_USER", "PHARM_OWNER", "PHARMACIST")
                 .anyRequest().authenticated()
             )
             .formLogin(form -> form
                 .loginPage("/auth/login")
                 .loginProcessingUrl("/auth/login")
-                .defaultSuccessUrl("/admin/dashboard", true)
+                .successHandler((request, response, authentication) -> {
+                    boolean isStaff = authentication.getAuthorities().stream()
+                            .anyMatch(a -> a.getAuthority().equals("SUPER_USER") 
+                                    || a.getAuthority().equals("PHARM_OWNER") 
+                                    || a.getAuthority().equals("PHARMACIST"));
+                    if (isStaff) {
+                        response.sendRedirect("/admin/dashboard");
+                    } else {
+                        response.sendRedirect("/");
+                    }
+                })
                 .failureUrl("/auth/login?error=true")
                 .usernameParameter("username")
                 .passwordParameter("password")
@@ -45,7 +56,7 @@ public class SecurityConfig {
 
         // H2 console requires frames + CSRF disabled for its own POST requests
         http.headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()));
-        http.csrf(csrf -> csrf.ignoringRequestMatchers("/h2-console/**", "/api/**"));
+        http.csrf(csrf -> csrf.ignoringRequestMatchers("/h2-console/**", "/api/**", "/ws-notifications/**"));
 
         return http.build();
     }

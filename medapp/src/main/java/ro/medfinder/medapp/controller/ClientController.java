@@ -11,6 +11,7 @@ import ro.medfinder.medapp.config.CustomUserDetails;
 import ro.medfinder.medapp.dto.OrderCreateRequest;
 import ro.medfinder.medapp.entity.Client;
 import ro.medfinder.medapp.entity.Order;
+import ro.medfinder.medapp.repository.ClientRepository;
 import ro.medfinder.medapp.service.ClientOrderService;
 
 import java.util.LinkedHashMap;
@@ -32,6 +33,7 @@ import java.util.Map;
 public class ClientController {
 
     private final ClientOrderService clientOrderService;
+    private final ClientRepository clientRepository;
 
     // ── POST /api/client/orders ─────────────────────────────────
 
@@ -68,6 +70,25 @@ public class ClientController {
     }
 
     // ── GET /api/client/orders ──────────────────────────────────
+
+    // ── Settings ────────────────────────────────────────────────
+
+    @GetMapping("/settings/radius")
+    public ResponseEntity<Map<String, Integer>> getSearchRadius(
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        Client client = (Client) userDetails.getUser();
+        return ResponseEntity.ok(Map.of("radius", client.getSearchRadius() != null ? client.getSearchRadius() : -1));
+    }
+
+    @PostMapping("/settings/radius")
+    public ResponseEntity<?> setSearchRadius(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestParam Integer val) {
+        Client client = (Client) userDetails.getUser();
+        client.setSearchRadius(val);
+        clientRepository.save(client);
+        return ResponseEntity.ok(Map.of("status", "ok"));
+    }
 
     @GetMapping("/orders")
     public ResponseEntity<List<Map<String, Object>>> listOrders(

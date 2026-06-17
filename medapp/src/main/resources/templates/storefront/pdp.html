@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      layout:decorate="~{layout/storefront}">
+<head>
+    <title th:text="${medication.name} + ' - MedFinder'">MedFinder PDP</title>
+    <style>
+        .mf-price-row.highlighted {
+            background: var(--clr-surface-hover) !important;
+            border-color: var(--clr-secondary) !important;
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.2);
+        }
+    </style>
+</head>
+<body>
+
+<main layout:fragment="content" class="mf-container">
+    
+    <div class="mf-pdp-header">
+        <div>
+            <span class="mf-ean-badge" th:text="'EAN: ' + ${medication.ean}">EAN: 12345678</span>
+            <h1 class="mf-pdp-title" th:text="${medication.name}">Medication Name</h1>
+            <p class="mf-pdp-desc" th:text="${medication.activeSubstance} + ' • ' + ${medication.dosage} + ' • ' + ${medication.form}">Details</p>
+        </div>
+        <div th:if="${medication.prescriptionRequired}" style="color: var(--clr-secondary); font-weight: 500; display:flex; align-items:center; gap:8px;">
+            <i class="bi bi-exclamation-circle-fill"></i> Prescription Required
+        </div>
+    </div>
+
+    <div class="mf-col-2">
+        <!-- Left: Price Comparison List -->
+        <div class="mf-price-list">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 class="mf-section-title" style="margin-bottom: 0; font-size: 24px;">Available at</h2>
+            </div>
+            
+            <div th:if="${#lists.isEmpty(stocks)}" class="mf-glass-card">
+                Out of stock everywhere nearby.
+            </div>
+ 
+            <!-- Sort stocks by price using Thymeleaf stream/sort -->
+            <div th:each="stock : ${stocks}" class="mf-glass-card mf-price-row" th:id="'stock-row-' + ${stock.id}" th:attr="data-price=${stock.price}, data-location-id=${stock.location.id}, data-lat=${stock.location.latitude}, data-lng=${stock.location.longitude}">
+                <div class="mf-pharmacy-info">
+                    <div class="mf-pharmacy-logo" th:text="${#strings.substring(stock.location.pharmacyName, 0, 1)}">P</div>
+                    <div class="mf-pharmacy-details">
+                        <h3 th:text="${stock.location.pharmacyName}">Pharmacy Name</h3>
+                        <p>
+                            <i class="bi bi-geo-alt"></i> <span th:text="${stock.location.address} + ', ' + ${stock.location.city}">Address</span>
+                        </p>
+                        <div class="mf-stock-badge mf-stock-in" th:text="'In Stock: ' + ${stock.quantity}">In Stock: 5</div>
+                    </div>
+                </div>
+                <div class="mf-price-action">
+                    <div class="mf-price-big" th:text="${stock.price} + ' RON'">15 RON</div>
+                    <!-- Click & Collect Reservation Trigger -->
+                    <button class="mf-btn mf-btn-primary" 
+                            th:onclick="'reserve(' + ${stock.location.id} + ', ' + ${medication.id} + ', ' + ${stock.price} + ')'">
+                        Reserve <i class="bi bi-arrow-right-short"></i>
+                    </button>
+                </div>
+            </div>
+            
+        </div>
+ 
+        <!-- Right Column: Map & Slider -->
+        <div style="display: flex; flex-direction: column; gap: 16px; position: sticky; top: 100px;">
+            <div id="pdp-map" class="mf-pdp-map mf-glass-card" style="padding:0; border:1px solid var(--clr-border); height: 400px; position: static;"></div>
+            
+            <!-- Slider under the map -->
+            <div class="mf-glass-card" style="padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; gap: 15px; background: rgba(36, 40, 59, 0.85); border-radius: var(--radius-md); border: 1px solid var(--clr-border); backdrop-filter: blur(12px);">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-weight: 500; color: var(--clr-text-muted); font-size: 14px; white-space: nowrap;">Radius:</span>
+                    <input type="number" id="pdpRadiusInput" min="1" max="100" value="10" style="width: 55px; background: rgba(0,0,0,0.3); border: 1px solid var(--clr-border); color: var(--clr-accent); font-weight: 700; font-family: var(--font-display); font-size: 15px; border-radius: 4px; padding: 2px 6px; text-align: center; outline: none; -moz-appearance: textfield;">
+                    <span style="font-weight: 500; color: var(--clr-text-muted); font-size: 14px;">km</span>
+                </div>
+                <input type="range" id="pdpSearchRadius" class="mf-form-control" style="flex-grow: 1; margin: 0; padding: 0; height: 6px; background: rgba(255,255,255,0.1); accent-color: var(--clr-accent); cursor: pointer;" min="1" max="100" value="10">
+            </div>
+        </div>
+    </div>
+
+    <!-- Vanilla CSS Reservation Modal -->
+    <div id="reservationModal" class="mf-modal-backdrop">
+        <div class="mf-glass-card mf-modal-content">
+            
+            <div class="mf-modal-header">
+                <h5 class="mf-modal-title"><i class="bi bi-clock-history"></i> Reserve Medication</h5>
+                <button type="button" class="mf-modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            
+            <div class="mf-modal-body">
+                <form id="reservationForm" onsubmit="event.preventDefault(); submitReservation();">
+                    <input type="hidden" id="resLocationId">
+                    <input type="hidden" id="resMedicationId">
+                    
+                    <div class="mf-form-group">
+                        <label for="resQuantity" class="mf-form-label">How many units?</label>
+                        <input type="number" id="resQuantity" class="mf-form-control" value="1" min="1" required>
+                    </div>
+                    
+                    <div class="mf-form-group">
+                        <label for="resHours" class="mf-form-label">Duration (Hours)</label>
+                        <input type="number" id="resHours" class="mf-form-control" value="2" min="1" max="24" required>
+                        <small class="mf-form-text"><i class="bi bi-info-circle"></i> 0-2h is free, 3-24h applies a holding fee.</small>
+                    </div>
+                </form>
+                
+                <div id="resAlert" class="mf-alert"></div>
+            </div>
+            
+            <div class="mf-modal-footer">
+                <button type="button" class="mf-btn mf-btn-outline" id="cancelResBtn" onclick="closeModal()">Cancel</button>
+                <button type="button" class="mf-btn mf-btn-primary" id="confirmResBtn" onclick="submitReservation()">Confirm Reservation</button>
+            </div>
+            
+        </div>
+    </div>
+
+</main>
+
+<th:block layout:fragment="scripts">
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+        const stocks = /*[[${stocks}]]*/ [];
+        /*]]>*/
+
+        let resModalElement;
+
+        document.addEventListener("DOMContentLoaded", function() {
+            resModalElement = document.getElementById('reservationModal');
+
+            // 1. Sort rows by price
+            const list = document.querySelector('.mf-price-list');
+            const rows = Array.from(list.querySelectorAll('.mf-price-row'));
+            rows.sort((a, b) => parseFloat(a.dataset.price) - parseFloat(b.dataset.price));
+            rows.forEach(row => list.appendChild(row));
+
+            // 2. Initialize Map
+            if (stocks.length > 0) {
+                // Focus on first stock location
+                let firstLat = 44.4268;
+                let firstLng = 26.1025;
+                
+                // Find first valid coordinate
+                for(let s of stocks) {
+                    if(s.location.latitude && s.location.longitude) {
+                        firstLat = s.location.latitude;
+                        firstLng = s.location.longitude;
+                        break;
+                    }
+                }
+
+                const map = L.map('pdp-map', { zoomControl: true }).setView([firstLat, firstLng], 13);
+                L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                    maxZoom: 19,
+                    attribution: '© OSM, © CartoDB'
+                }).addTo(map);
+
+                const pharmaIcon = L.divIcon({
+                    className: 'custom-div-icon',
+                    html: `<div style='background-color:#00F0FF;width:16px;height:16px;border-radius:50%;border:2px solid #0A0A0B;box-shadow:0 0 15px rgba(0,240,255,0.8); transition: all 0.3s ease;'></div>`,
+                    iconSize: [16, 16],
+                    iconAnchor: [8, 8]
+                });
+
+                const pharmaIconHover = L.divIcon({
+                    className: 'custom-div-icon',
+                    html: `<div style='background-color:#FF007A;width:24px;height:24px;border-radius:50%;border:2px solid #0A0A0B;box-shadow:0 0 25px rgba(255,0,122,1); transition: all 0.3s ease;'></div>`,
+                    iconSize: [24, 24],
+                    iconAnchor: [12, 12]
+                });
+
+                const userLatStr = localStorage.getItem('mf_user_lat');
+                const userLngStr = localStorage.getItem('mf_user_lng');
+                let searchRadiusKm = parseFloat(localStorage.getItem('mf_search_radius') || '10');
+                
+                const pdpSlider = document.getElementById('pdpSearchRadius');
+                const pdpRadiusInput = document.getElementById('pdpRadiusInput');
+                pdpSlider.value = searchRadiusKm;
+                pdpRadiusInput.value = searchRadiusKm;
+                let userLat = userLatStr ? parseFloat(userLatStr) : 44.4268;
+                let userLng = userLngStr ? parseFloat(userLngStr) : 26.1025;
+                let radiusCircle = null;
+
+                function drawUserLocation(lat, lng) {
+                    // User marker
+                    L.circleMarker([lat, lng], {
+                        radius: 8,
+                        fillColor: "var(--clr-secondary)",
+                        color: "#fff",
+                        weight: 2,
+                        opacity: 1,
+                        fillOpacity: 0.8
+                    }).addTo(map).bindPopup("You are here");
+
+                    // Search radius circle
+                    if (radiusCircle) {
+                        map.removeLayer(radiusCircle);
+                    }
+                    radiusCircle = L.circle([lat, lng], {
+                        color: 'var(--clr-accent)',
+                        fillColor: 'var(--clr-accent)',
+                        fillOpacity: 0.08,
+                        weight: 1.5,
+                        radius: searchRadiusKm * 1000 // meters
+                    }).addTo(map);
+
+                    map.fitBounds(radiusCircle.getBounds(), { animate: false });
+                }
+
+                function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
+                    const R = 6371; // Radius of the earth in km
+                    const dLat = (lat2-lat1) * (Math.PI/180);
+                    const dLon = (lon2-lon1) * (Math.PI/180); 
+                    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                              Math.cos(lat1 * (Math.PI/180)) * Math.cos(lat2 * (Math.PI/180)) * 
+                              Math.sin(dLon/2) * Math.sin(dLon/2); 
+                    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
+                    return R * c;
+                }
+                
+                let activeMarkersByLocation = {};
+
+                function renderStocks(radiusKm) {
+                    // Clear existing markers
+                    for (let id in activeMarkersByLocation) {
+                        map.removeLayer(activeMarkersByLocation[id]);
+                    }
+                    activeMarkersByLocation = {};
+                    
+                    let firstValidLat = null;
+                    let firstValidLng = null;
+
+                    stocks.forEach(s => {
+                        const row = document.querySelector(`.mf-price-row[data-location-id="${s.location.id}"]`);
+                        
+                        if(s.location.latitude && s.location.longitude) {
+                            const dist = getDistanceFromLatLonInKm(userLat, userLng, s.location.latitude, s.location.longitude);
+                            
+                            if (dist > radiusKm) {
+                                if (row) row.style.display = 'none';
+                                return; // skip adding marker
+                            }
+
+                            if (row) row.style.display = 'flex';
+
+                            if (firstValidLat === null) {
+                                firstValidLat = s.location.latitude;
+                                firstValidLng = s.location.longitude;
+                            }
+
+                            const marker = L.marker([s.location.latitude, s.location.longitude], {icon: pharmaIcon})
+                             .addTo(map)
+                             .bindPopup(`<b>${s.location.pharmacyName}</b><br>${s.price} RON`);
+                             
+                            activeMarkersByLocation[s.location.id] = marker;
+
+                            // Reverse highlighting listeners
+                            if (row) {
+                                marker.on('mouseover', () => {
+                                    marker.setIcon(pharmaIconHover);
+                                    marker.setZIndexOffset(1000);
+                                    row.classList.add('highlighted');
+                                    row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                                });
+                                marker.on('mouseout', () => {
+                                    marker.setIcon(pharmaIcon);
+                                    marker.setZIndexOffset(0);
+                                    row.classList.remove('highlighted');
+                                });
+                            }
+                        }
+                    });
+                }
+                
+                // Initial render
+                drawUserLocation(userLat, userLng);
+                renderStocks(searchRadiusKm);
+
+                function updateRadius(val, updateInputSource = true) {
+                    let parsed = parseFloat(val);
+                    if (isNaN(parsed) || parsed < 1) parsed = 1;
+                    if (parsed > 100) parsed = 100;
+                    
+                    searchRadiusKm = parsed;
+                    if (updateInputSource) {
+                        pdpSlider.value = searchRadiusKm;
+                        pdpRadiusInput.value = searchRadiusKm;
+                    }
+                    
+                    if (radiusCircle) {
+                        radiusCircle.setRadius(searchRadiusKm * 1000);
+                        map.fitBounds(radiusCircle.getBounds(), { animate: false });
+                    }
+                    renderStocks(searchRadiusKm);
+                }
+
+                // Live Slider Update
+                pdpSlider.addEventListener('input', (e) => {
+                    updateRadius(e.target.value, false);
+                    pdpRadiusInput.value = e.target.value;
+                });
+
+                pdpRadiusInput.addEventListener('input', (e) => {
+                    updateRadius(e.target.value, false);
+                    pdpSlider.value = e.target.value;
+                });
+
+                // Save on change complete
+                function commitRadiusChange(val) {
+                    let parsed = parseFloat(val);
+                    if (isNaN(parsed) || parsed < 1) parsed = 1;
+                    if (parsed > 100) parsed = 100;
+                    
+                    pdpRadiusInput.value = parsed;
+                    pdpSlider.value = parsed;
+                    
+                    localStorage.setItem('mf_search_radius', parsed);
+                    const isAuth = document.getElementById('notif-bell') !== null;
+                    if (isAuth) {
+                        const fd = new URLSearchParams();
+                        fd.append('val', parsed);
+                        fetch('/api/client/settings/radius', { method: 'POST', body: fd }).catch(console.error);
+                    }
+                }
+
+                pdpSlider.addEventListener('change', (e) => {
+                    commitRadiusChange(e.target.value);
+                });
+
+                pdpRadiusInput.addEventListener('change', (e) => {
+                    commitRadiusChange(e.target.value);
+                });
+
+                window.addEventListener('radiusSynced', (e) => {
+                    searchRadiusKm = e.detail;
+                    pdpSlider.value = searchRadiusKm;
+                    pdpRadiusInput.value = searchRadiusKm;
+                    if (radiusCircle) {
+                        radiusCircle.setRadius(searchRadiusKm * 1000);
+                        map.fitBounds(radiusCircle.getBounds(), { animate: false });
+                    }
+                    renderStocks(searchRadiusKm);
+                });
+
+                // Add hover effect to rows (bind once)
+                rows.forEach(row => {
+                    const locId = row.dataset.locationId;
+                    const lat = parseFloat(row.dataset.lat);
+                    const lng = parseFloat(row.dataset.lng);
+                    row.addEventListener('mouseenter', () => {
+                        if (activeMarkersByLocation[locId]) {
+                            activeMarkersByLocation[locId].setIcon(pharmaIconHover);
+                            activeMarkersByLocation[locId].setZIndexOffset(1000);
+                            
+                            // Recenter/pan map to the hovered location if not currently visible in the bounds
+                            if (!isNaN(lat) && !isNaN(lng)) {
+                                const bounds = map.getBounds();
+                                if (!bounds.contains([lat, lng])) {
+                                    map.panTo([lat, lng]);
+                                }
+                            }
+                        }
+                    });
+                    row.addEventListener('mouseleave', () => {
+                        if (activeMarkersByLocation[locId]) {
+                            activeMarkersByLocation[locId].setIcon(pharmaIcon);
+                            activeMarkersByLocation[locId].setZIndexOffset(0);
+                        }
+                    });
+                });
+            }
+        });
+
+        // Custom Modal Logic
+        function openModal() {
+            resModalElement.style.display = 'flex';
+        }
+        function closeModal() {
+            resModalElement.style.display = 'none';
+        }
+
+        // Click & Collect Logic
+        function reserve(locationId, medicationId, price) {
+            document.getElementById('resLocationId').value = locationId;
+            document.getElementById('resMedicationId').value = medicationId;
+            document.getElementById('resQuantity').value = "1";
+            document.getElementById('resHours').value = "2";
+            
+            const alertDiv = document.getElementById('resAlert');
+            alertDiv.style.display = 'none';
+            alertDiv.innerHTML = '';
+            
+            document.getElementById('confirmResBtn').style.display = 'block';
+            document.getElementById('reservationForm').style.display = 'block';
+            document.getElementById('cancelResBtn').innerText = 'Cancel';
+            openModal();
+        }
+
+        function submitReservation() {
+            const locationId = document.getElementById('resLocationId').value;
+            const medicationId = document.getElementById('resMedicationId').value;
+            const quantity = document.getElementById('resQuantity').value;
+            const hours = document.getElementById('resHours').value;
+            const alertDiv = document.getElementById('resAlert');
+            
+            if (!quantity || quantity <= 0 || !hours || hours <= 0 || hours > 24) {
+                alertDiv.style.display = 'block';
+                alertDiv.className = 'mf-alert mf-alert-warning';
+                alertDiv.innerHTML = 'Please enter valid inputs (Quantity > 0, Hours 1-24).';
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('locationId', locationId);
+            formData.append('medicationId', medicationId);
+            formData.append('quantity', quantity);
+            formData.append('hours', hours);
+
+            const btn = document.getElementById('confirmResBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Reserving...';
+
+            fetch('/api/reserve', {
+                method: 'POST',
+                body: formData
+            })
+            .then(async response => {
+                btn.disabled = false;
+                btn.innerHTML = 'Confirm Reservation';
+                
+                if (response.ok) {
+                    const order = await response.json();
+                    
+                    btn.style.display = 'none';
+                    document.getElementById('reservationForm').style.display = 'none';
+                    
+                    const expiresStr = order.expiresAt ? new Date(order.expiresAt).toLocaleString() : 'N/A';
+                    
+                    alertDiv.style.display = 'block';
+                    alertDiv.className = 'mf-alert mf-alert-success';
+                    alertDiv.innerHTML = `<strong>Reservation successful!</strong><br>
+                                          Order #: <b>${order.orderNumber}</b><br>
+                                          Total to pay at pharmacy: <b>${order.totalPrice} RON</b><br>
+                                          (Holding fee: ${order.holdingFee} RON)<br><br>
+                                          <i class="bi bi-stopwatch"></i> Reserved until: <b>${expiresStr}</b>`;
+                    
+                    document.getElementById('cancelResBtn').innerText = 'Close';
+                } else {
+                    const err = await response.text();
+                    alertDiv.style.display = 'block';
+                    alertDiv.className = 'mf-alert mf-alert-danger';
+                    alertDiv.innerHTML = "<strong>Failed to reserve:</strong> " + err;
+                }
+            })
+            .catch(error => {
+                btn.disabled = false;
+                btn.innerHTML = 'Confirm Reservation';
+                
+                console.error("Error:", error);
+                alertDiv.style.display = 'block';
+                alertDiv.className = 'mf-alert mf-alert-danger';
+                alertDiv.innerHTML = "An error occurred during reservation.";
+            });
+        }
+    </script>
+</th:block>
+
+</body>
+</html>

@@ -1,0 +1,717 @@
+/* ==========================================================================
+   Storefront Design System (Frontend-Design Principles)
+   ========================================================================== */
+
+/* ── 1. Tokens ───────────────────────────────────────────────────────────── */
+:root {
+    /* Palette: Tokyo Night Theme */
+    --clr-bg: #1a1b26;
+    --clr-surface: rgba(36, 40, 59, 0.8);
+    --clr-surface-hover: rgba(65, 72, 104, 0.8);
+    --clr-border: rgba(192, 202, 245, 0.1);
+    
+    --clr-accent: #7dcfff;
+    --clr-accent-dim: rgba(125, 207, 255, 0.15);
+    --clr-secondary: #bb9af7;
+    
+    --clr-text: #c0caf5;
+    --clr-text-muted: #565f89;
+    
+    /* Typography */
+    --font-display: 'Outfit', sans-serif;
+    --font-body: 'Inter', sans-serif;
+    
+    --transition: all 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    --radius-sm: 8px;
+    --radius-md: 16px;
+    --radius-lg: 24px;
+    --radius-pill: 999px;
+}
+
+/* ── 2. Reset & Base ─────────────────────────────────────────────────────── */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background-color: var(--clr-bg);
+    color: var(--clr-text);
+    font-family: var(--font-body);
+    font-size: 16px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, .mf-display {
+    font-family: var(--font-display);
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+}
+
+a {
+    color: var(--clr-accent);
+    text-decoration: none;
+    transition: var(--transition);
+}
+
+.mf-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px;
+}
+
+/* ── 3. Components ───────────────────────────────────────────────────────── */
+
+/* Header & Search */
+.mf-header {
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    background: rgba(10, 10, 11, 0.8);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--clr-border);
+    padding: 16px 0;
+}
+
+.mf-nav-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 32px;
+}
+
+.mf-logo {
+    font-family: var(--font-display);
+    font-size: 24px;
+    font-weight: 800;
+    color: var(--clr-text);
+    letter-spacing: -0.04em;
+}
+
+.mf-logo span {
+    color: var(--clr-accent);
+}
+
+.mf-search-wrapper {
+    flex: 1;
+    max-width: 600px;
+    position: relative;
+}
+
+.mf-search-icon {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--clr-text-muted);
+    font-size: 18px;
+}
+
+.mf-search-input {
+    width: 100%;
+    background: var(--clr-surface);
+    border: 1px solid var(--clr-border);
+    border-radius: var(--radius-pill);
+    padding: 12px 24px 12px 48px;
+    color: var(--clr-text);
+    font-family: var(--font-body);
+    font-size: 15px;
+    transition: var(--transition);
+}
+
+.mf-search-input:focus {
+    outline: none;
+    border-color: var(--clr-accent);
+    box-shadow: 0 0 0 4px var(--clr-accent-dim);
+    background: rgba(25, 25, 28, 0.8);
+}
+
+/* Buttons */
+.mf-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 24px;
+    border-radius: var(--radius-pill);
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: var(--transition);
+    border: none;
+    font-family: var(--font-body);
+}
+
+.mf-btn-primary {
+    background: var(--clr-accent);
+    color: #000;
+}
+
+.mf-btn-primary:hover {
+    background: #fff;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px var(--clr-accent-dim);
+}
+
+.mf-btn-outline {
+    background: transparent;
+    border: 1px solid var(--clr-border);
+    color: var(--clr-text);
+}
+
+.mf-btn-outline:hover {
+    border-color: var(--clr-text);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+/* Glassmorphism Cards */
+.mf-glass-card {
+    background: var(--clr-surface);
+    border: 1px solid var(--clr-border);
+    border-radius: var(--radius-md);
+    padding: 24px;
+    backdrop-filter: blur(8px);
+}
+
+/* ── 4. Specific Page Layouts ────────────────────────────────────────────── */
+
+/* Home Layout */
+.mf-home-hero {
+    position: relative;
+    height: 60vh;
+    min-height: 400px;
+    width: 100%;
+    margin-bottom: 48px;
+    border-bottom: 1px solid var(--clr-border);
+}
+
+.mf-map-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+}
+
+/* Leaflet Dark Theme Overrides */
+.leaflet-container {
+    background: var(--clr-bg) !important;
+}
+.leaflet-tile {
+    filter: brightness(1.8) contrast(0.85); /* Brighten the CartoDB dark tiles to make streets visible */
+}
+
+.mf-hero-overlay {
+    position: absolute;
+    bottom: 32px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+    background: rgba(10, 10, 11, 0.85);
+    backdrop-filter: blur(12px);
+    padding: 16px 32px;
+    border-radius: var(--radius-pill);
+    border: 1px solid var(--clr-border);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+}
+
+.mf-pulse-dot {
+    width: 8px;
+    height: 8px;
+    background: var(--clr-accent);
+    border-radius: 50%;
+    box-shadow: 0 0 0 0 rgba(0, 240, 255, 0.7);
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(0, 240, 255, 0.7); }
+    70% { box-shadow: 0 0 0 10px rgba(0, 240, 255, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(0, 240, 255, 0); }
+}
+
+/* Meds List */
+.mf-section-title {
+    font-size: 32px;
+    margin-bottom: 32px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.mf-section-title::before {
+    content: '';
+    display: block;
+    width: 4px;
+    height: 24px;
+    background: var(--clr-accent);
+    border-radius: 2px;
+}
+
+.mf-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 24px;
+    margin-bottom: 64px;
+}
+
+.mf-med-card {
+    display: flex;
+    flex-direction: column;
+    text-decoration: none;
+    color: var(--clr-text);
+    transition: var(--transition);
+}
+
+.mf-med-card:hover {
+    transform: translateY(-4px);
+    border-color: var(--clr-accent);
+    background: var(--clr-surface-hover);
+}
+
+.mf-med-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 16px;
+}
+
+.mf-med-name {
+    font-size: 20px;
+    margin-bottom: 4px;
+}
+
+.mf-med-sub {
+    font-size: 14px;
+    color: var(--clr-text-muted);
+}
+
+.mf-med-price {
+    font-family: var(--font-display);
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--clr-accent);
+}
+
+.mf-med-footer {
+    margin-top: auto;
+    padding-top: 16px;
+    border-top: 1px solid var(--clr-border);
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    color: var(--clr-text-muted);
+}
+
+/* PDP Layout */
+.mf-pdp-header {
+    margin: 64px 0 48px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+}
+
+.mf-ean-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    background: var(--clr-surface);
+    border: 1px solid var(--clr-border);
+    border-radius: var(--radius-pill);
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    color: var(--clr-text-muted);
+    margin-bottom: 16px;
+}
+
+.mf-pdp-title {
+    font-size: 48px;
+    margin-bottom: 8px;
+}
+
+.mf-pdp-desc {
+    color: var(--clr-text-muted);
+    max-width: 600px;
+    font-size: 18px;
+}
+
+/* Price List (Compari style) */
+.mf-price-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.mf-price-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 24px;
+    transition: var(--transition);
+}
+
+.mf-price-row:hover {
+    background: var(--clr-surface-hover);
+    border-color: var(--clr-text-muted);
+}
+
+.mf-pharmacy-info {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+}
+
+.mf-pharmacy-logo {
+    width: 48px;
+    height: 48px;
+    background: #fff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    color: #000;
+}
+
+.mf-pharmacy-details h3 {
+    font-size: 18px;
+    margin-bottom: 4px;
+}
+
+.mf-pharmacy-details p {
+    font-size: 14px;
+    color: var(--clr-text-muted);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.mf-stock-badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.mf-stock-in {
+    background: rgba(0, 255, 136, 0.1);
+    color: #00FF88;
+}
+
+.mf-price-action {
+    display: flex;
+    align-items: center;
+    gap: 32px;
+}
+
+.mf-price-big {
+    font-family: var(--font-display);
+    font-size: 32px;
+    font-weight: 700;
+}
+
+/* Layout Utilities */
+.mf-col-2 {
+    display: grid;
+    grid-template-columns: 1fr 400px;
+    gap: 48px;
+    align-items: start;
+}
+
+.mf-pdp-map {
+    height: 400px;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    position: sticky;
+    top: 100px;
+}
+
+/* ── 5. Notifications & Dropdowns ────────────────────────────────────────── */
+
+/* Bell Wrapper */
+.mf-bell-wrapper {
+    position: relative;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--clr-surface);
+    border: 1px solid var(--clr-border);
+    color: var(--clr-text);
+    transition: var(--transition);
+}
+
+.mf-bell-wrapper:hover, .mf-bell-wrapper.active {
+    background: var(--clr-surface-hover);
+    border-color: var(--clr-accent);
+}
+
+.mf-bell-wrapper i {
+    font-size: 1.2rem;
+}
+
+.mf-bell-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    background: #ff4757;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: var(--radius-pill);
+    box-shadow: 0 0 0 2px var(--clr-bg);
+    display: none;
+}
+
+/* Dropdown Menu (Shared for Notif & Account) */
+.mf-notif-dropdown {
+    position: absolute;
+    top: calc(100% + 12px);
+    right: -20px;
+    width: 320px;
+    background: var(--clr-surface);
+    border: 1px solid var(--clr-border);
+    border-radius: var(--radius-sm);
+    box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+    backdrop-filter: blur(12px);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(10px);
+    transition: var(--transition);
+    z-index: 2000;
+}
+
+.mf-bell-wrapper.active .mf-notif-dropdown,
+.mf-notif-dropdown.show {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.mf-notif-header {
+    padding: 16px;
+    font-weight: 600;
+    font-family: var(--font-display);
+    border-bottom: 1px solid var(--clr-border);
+    color: var(--clr-text);
+}
+
+.mf-notif-item {
+    padding: 16px;
+    border-bottom: 1px solid var(--clr-border);
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.mf-notif-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.mf-notif-item:last-child {
+    border-bottom: none;
+}
+
+.mf-notif-title {
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--clr-accent);
+    margin-bottom: 4px;
+}
+
+.mf-notif-body {
+    font-size: 13px;
+    color: var(--clr-text-muted);
+}
+
+/* Toast Component */
+#mf-toast-container {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.mf-toast {
+    background: var(--clr-surface);
+    border: 1px solid var(--clr-border);
+    border-radius: var(--radius-sm);
+    padding: 16px;
+    min-width: 300px;
+    max-width: 400px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    backdrop-filter: blur(12px);
+    border-left: 4px solid var(--clr-accent);
+    transform: translateX(120%);
+    opacity: 0;
+    transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+.mf-toast.show {
+    transform: translateX(0);
+    opacity: 1;
+}
+
+.mf-toast-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: 600;
+    color: var(--clr-accent);
+    margin-bottom: 8px;
+    font-family: var(--font-display);
+}
+
+.mf-toast-close {
+    background: none;
+    border: none;
+    color: var(--clr-text-muted);
+    font-size: 20px;
+    cursor: pointer;
+    line-height: 1;
+}
+
+.mf-toast-close:hover {
+    color: var(--clr-text);
+}
+
+.mf-toast-body {
+    font-size: 14px;
+    color: var(--clr-text);
+}
+
+/* ── 6. Modals & Forms ───────────────────────────────────────────────────── */
+
+.mf-modal-backdrop {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0,0,0,0.6);
+    z-index: 9999;
+    justify-content: center;
+    align-items: center;
+    backdrop-filter: blur(4px);
+}
+
+.mf-modal-content {
+    background: rgba(36, 40, 59, 0.95);
+    width: 100%;
+    max-width: 450px;
+    border: 1px solid var(--clr-border);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    border-radius: 12px;
+    padding: 0;
+}
+
+.mf-modal-header {
+    padding: 20px;
+    border-bottom: 1px solid var(--clr-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.mf-modal-title {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+.mf-modal-close {
+    background: transparent;
+    border: none;
+    color: var(--clr-text-muted);
+    font-size: 1.5rem;
+    cursor: pointer;
+    line-height: 1;
+}
+
+.mf-modal-close:hover {
+    color: var(--clr-text);
+}
+
+.mf-modal-body {
+    padding: 20px;
+}
+
+.mf-modal-footer {
+    padding: 15px 20px;
+    border-top: 1px solid var(--clr-border);
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.mf-form-group {
+    margin-bottom: 15px;
+}
+
+.mf-form-label {
+    display: block;
+    margin-bottom: 8px;
+    color: var(--clr-text-muted);
+}
+
+.mf-form-control {
+    width: 100%;
+    padding: 10px;
+    background: rgba(0,0,0,0.2);
+    border: 1px solid var(--clr-border);
+    color: #fff;
+    border-radius: 6px;
+    outline: none;
+    font-family: var(--font-body);
+}
+
+.mf-form-control:focus {
+    border-color: var(--clr-accent);
+}
+
+.mf-form-text {
+    display: block;
+    margin-top: 6px;
+    color: var(--clr-text-muted);
+    font-size: 0.85rem;
+}
+
+.mf-alert {
+    display: none;
+    padding: 15px;
+    border-radius: 6px;
+    margin-top: 15px;
+    border: 1px solid transparent;
+}
+
+.mf-alert-warning {
+    background-color: rgba(255, 193, 7, 0.1);
+    border-color: rgba(255, 193, 7, 0.3);
+    color: #ffc107;
+}
+
+.mf-alert-success {
+    background-color: rgba(40, 167, 69, 0.1);
+    border-color: rgba(40, 167, 69, 0.3);
+    color: #28a745;
+}
+
+.mf-alert-danger {
+    background-color: rgba(220, 53, 69, 0.1);
+    border-color: rgba(220, 53, 69, 0.3);
+    color: #dc3545;
+}

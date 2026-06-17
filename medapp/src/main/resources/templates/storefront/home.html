@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      layout:decorate="~{layout/storefront}">
+<head>
+    <title>MedFinder - Find Medications Near You</title>
+</head>
+<body>
+
+<main layout:fragment="content">
+    
+    <!-- Hero / Map -->
+    <section class="mf-home-hero" style="margin-bottom: 20px;">
+        <div id="home-map" class="mf-map-container"></div>
+    </section>
+
+    <!-- Main Content -->
+    <div class="mf-container">
+        <!-- Unified Control Widget directly under the map -->
+        <div class="mf-glass-card" style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 20px; margin-bottom: 32px; background: rgba(36, 40, 59, 0.85); border: 1px solid var(--clr-border); border-radius: var(--radius-md); padding: 16px 24px; backdrop-filter: blur(12px);">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <button id="recenter-btn" class="mf-btn mf-btn-outline" style="padding: 0; width: 36px; height: 36px; border-radius: 50%; display: none; align-items: center; justify-content: center; border-color: var(--clr-border);" title="Recenter to my location">
+                    <i class="bi bi-crosshair" style="font-size: 1.1rem; color: var(--clr-accent);"></i>
+                </button>
+                <div class="mf-pulse-dot" style="flex-shrink: 0;"></div>
+                <span id="location-status" style="font-weight: 500; color: var(--clr-text); font-size: 14px;">Locating pharmacies near you...</span>
+            </div>
+            
+            <div style="display: flex; align-items: center; gap: 16px; min-width: 280px; flex-grow: 1; max-width: 480px; justify-content: flex-end;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-weight: 500; color: var(--clr-text-muted); font-size: 14px; white-space: nowrap;">Radius:</span>
+                    <input type="number" id="homeRadiusInput" min="1" max="100" value="10" style="width: 55px; background: rgba(0,0,0,0.3); border: 1px solid var(--clr-border); color: var(--clr-accent); font-weight: 700; font-family: var(--font-display); font-size: 15px; border-radius: 4px; padding: 2px 6px; text-align: center; outline: none; -moz-appearance: textfield;">
+                    <span style="font-weight: 500; color: var(--clr-text-muted); font-size: 14px;">km</span>
+                </div>
+                <input type="range" id="homeSearchRadius" class="mf-form-control" style="flex-grow: 1; margin: 0; padding: 0; height: 6px; background: rgba(255,255,255,0.1); accent-color: var(--clr-accent); cursor: pointer;" min="1" max="100" value="10">
+            </div>
+        </div>
+
+        <h2 id="radius-title" class="mf-section-title" style="margin-bottom: 24px;">Available Nearby</h2>
+        
+        <div id="nearby-meds-grid" class="mf-grid">
+            <!-- Populated via Javascript -->
+            <p style="grid-column: 1 / -1; color: var(--clr-text-muted);">Please allow location access to see nearby medications.</p>
+        </div>
+    </div>
+
+</main>
+
+<th:block layout:fragment="scripts">
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            // 1. Initialize Map (Default: Bucharest Center)
+            const map = L.map('home-map', { zoomControl: false }).setView([44.4268, 26.1025], 13);
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                maxZoom: 19,
+                attribution: '© OpenStreetMap, © CartoDB'
+            }).addTo(map);
+
+            const statusEl = document.getElementById('location-status');
+            const gridEl = document.getElementById('nearby-meds-grid');
+            
+            // 2. Custom Icon for Pharmacies
+            const pharmaIcon = L.divIcon({
+                className: 'custom-div-icon',
+                html: `<div style='background-color:#00F0FF;width:12px;height:12px;border-radius:50%;border:2px solid #0A0A0B;box-shadow:0 0 10px rgba(0,240,255,0.8); transition: all 0.3s ease;'></div>`,
+                iconSize: [12, 12],
+                iconAnchor: [6, 6]
+            });
+
+            const pharmaIconHover = L.divIcon({
+                className: 'custom-div-icon',
+                html: `<div style='background-color:#FF007A;width:20px;height:20px;border-radius:50%;border:2px solid #0A0A0B;box-shadow:0 0 20px rgba(255,0,122,1); transition: all 0.3s ease;'></div>`,
+                iconSize: [20, 20],
+                iconAnchor: [10, 10]
+            });
+
+            // 3. Geolocation & Radius
+            let searchRadiusKm = parseFloat(localStorage.getItem('mf_search_radius') || '10');
+            const radiusSlider = document.getElementById('homeSearchRadius');
+            const radiusInput = document.getElementById('homeRadiusInput');
+            
+            radiusSlider.value = searchRadiusKm;
+            radiusInput.value = searchRadiusKm;
+            document.getElementById('radius-title').innerText = `Available in a ${searchRadiusKm}km Radius`;
+
+            let userLat = 44.4268;
+            let userLng = 26.1025;
+            let radiusCircle = null;
+            const recenterBtn = document.getElementById('recenter-btn');
+
+            function updateRadius(val, updateInputSource = true, fitBounds = true) {
+                let parsed = parseFloat(val);
+                if (isNaN(parsed) || parsed < 1) parsed = 1;
+                if (parsed > 100) parsed = 100;
+                
+                searchRadiusKm = parsed;
+                if (updateInputSource) {
+                    radiusSlider.value = searchRadiusKm;
+                    radiusInput.value = searchRadiusKm;
+                }
+                
+                document.getElementById('radius-title').innerText = `Available in a ${searchRadiusKm}km Radius`;
+                
+                if (radiusCircle) {
+                    radiusCircle.setRadius(searchRadiusKm * 1000);
+                    if (fitBounds) {
+                        map.fitBounds(radiusCircle.getBounds(), { animate: true });
+                    }
+                }
+            }
+
+            // Live Slider Update
+            radiusSlider.addEventListener('input', (e) => {
+                updateRadius(e.target.value, false, false);
+                radiusInput.value = e.target.value;
+            });
+
+            radiusInput.addEventListener('input', (e) => {
+                updateRadius(e.target.value, false, false);
+                radiusSlider.value = e.target.value;
+            });
+
+            // Save and Fetch on change complete (mouse up / focus out / enter)
+            function commitRadiusChange(val) {
+                let parsed = parseFloat(val);
+                if (isNaN(parsed) || parsed < 1) parsed = 1;
+                if (parsed > 100) parsed = 100;
+                
+                radiusInput.value = parsed;
+                radiusSlider.value = parsed;
+                
+                localStorage.setItem('mf_search_radius', parsed);
+                syncRadiusToBackend(parsed);
+                
+                if (radiusCircle) {
+                    map.fitBounds(radiusCircle.getBounds(), { animate: true });
+                }
+                
+                fetchNearbyStocks(userLat, userLng, parsed);
+            }
+
+            radiusSlider.addEventListener('change', (e) => {
+                commitRadiusChange(e.target.value);
+            });
+
+            radiusInput.addEventListener('change', (e) => {
+                commitRadiusChange(e.target.value);
+            });
+
+            window.addEventListener('radiusSynced', (e) => {
+                searchRadiusKm = e.detail;
+                radiusSlider.value = searchRadiusKm;
+                radiusInput.value = searchRadiusKm;
+                document.getElementById('radius-title').innerText = `Available in a ${searchRadiusKm}km Radius`;
+                if (radiusCircle) {
+                    radiusCircle.setRadius(searchRadiusKm * 1000);
+                    map.fitBounds(radiusCircle.getBounds(), { animate: false });
+                }
+                fetchNearbyStocks(userLat, userLng, searchRadiusKm);
+            });
+ 
+             function syncRadiusToBackend(rad) {
+                 const isAuth = document.getElementById('notif-bell') !== null;
+                 if (isAuth) {
+                     const fd = new URLSearchParams();
+                     fd.append('val', rad);
+                     fetch('/api/client/settings/radius', { method: 'POST', body: fd }).catch(e => console.error(e));
+                 }
+             }
+ 
+             function drawUserLocation(lat, lng) {
+                 // User marker
+                 L.circleMarker([lat, lng], {
+                     radius: 8,
+                     fillColor: "var(--clr-secondary)",
+                     color: "#fff",
+                     weight: 2,
+                     opacity: 1,
+                     fillOpacity: 0.8
+                 }).addTo(map).bindPopup("You are here");
+ 
+                 // Search radius circle
+                 if (radiusCircle) {
+                     map.removeLayer(radiusCircle);
+                 }
+                 radiusCircle = L.circle([lat, lng], {
+                     color: 'var(--clr-accent)',
+                     fillColor: 'var(--clr-accent)',
+                     fillOpacity: 0.08,
+                     weight: 1.5,
+                     radius: searchRadiusKm * 1000 // meters
+                 }).addTo(map);
+
+                 map.fitBounds(radiusCircle.getBounds(), { animate: false });
+             }
+ 
+             if ("geolocation" in navigator) {
+                 navigator.geolocation.getCurrentPosition(
+                     position => {
+                         userLat = position.coords.latitude;
+                         userLng = position.coords.longitude;
+                         
+                         map.setView([userLat, userLng], 14);
+                         statusEl.innerText = "Showing pharmacies near your exact location";
+                         recenterBtn.style.display = 'inline-flex';
+                         
+                         localStorage.setItem('mf_user_lat', userLat);
+                         localStorage.setItem('mf_user_lng', userLng);
+ 
+                         drawUserLocation(userLat, userLng);
+                         fetchNearbyStocks(userLat, userLng, searchRadiusKm);
+                     },
+                     error => {
+                         console.warn("Geolocation denied or failed", error);
+                         statusEl.innerText = "Approximate location used (Bucharest Default)";
+                         // Fallback to default
+                         drawUserLocation(userLat, userLng);
+                         fetchNearbyStocks(userLat, userLng, searchRadiusKm);
+                     }
+                 );
+             } else {
+                 statusEl.innerText = "Approximate location used (Bucharest Default)";
+                 drawUserLocation(userLat, userLng);
+                 fetchNearbyStocks(userLat, userLng, searchRadiusKm);
+             }
+
+            recenterBtn.addEventListener('click', () => {
+                map.setView([userLat, userLng], 14);
+            });
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const searchQuery = urlParams.get('search');
+            if (searchQuery) {
+                const searchInput = document.getElementById('global-search');
+                if (searchInput) searchInput.value = searchQuery;
+            }
+
+            function fetchNearbyStocks(lat, lng, radius) {
+                fetch(`/api/nearby?lat=${lat}&lng=${lng}&radiusKm=${radius}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        gridEl.innerHTML = ''; // clear loading
+                        
+                        let filteredData = data;
+                        if (searchQuery) {
+                            const sq = searchQuery.toLowerCase();
+                            filteredData = data.filter(stock => {
+                                const med = stock.medication;
+                                return med.name.toLowerCase().includes(sq) ||
+                                       (med.activeSubstance && med.activeSubstance.toLowerCase().includes(sq)) ||
+                                       med.ean.toLowerCase().includes(sq);
+                            });
+                        }
+
+                        if (filteredData.length === 0) {
+                            gridEl.innerHTML = `<p>No medications found within ${radius}km${searchQuery ? ' matching "' + searchQuery + '"' : ''}.</p>`;
+                            return;
+                        }
+
+                        // Use a Map to deduplicate by EAN (show 1 card per medication)
+                        const medsMap = new Map();
+                        const markersByEan = {};
+                        
+                        // Keep track of locations to avoid duplicate markers on map (since one pharmacy can have multiple meds)
+                        const locationMarkers = new Map(); 
+
+                        filteredData.forEach(stock => {
+                            const ean = stock.medication.ean;
+                            const loc = stock.location;
+                            
+                            // Add marker to map (one per pharmacy)
+                            let marker;
+                            if (loc.latitude && loc.longitude) {
+                                if (!locationMarkers.has(loc.id)) {
+                                    marker = L.marker([loc.latitude, loc.longitude], {icon: pharmaIcon})
+                                     .addTo(map)
+                                     .bindPopup(`<b>${loc.pharmacyName || loc.name}</b><br>${loc.address}`);
+                                    locationMarkers.set(loc.id, marker);
+                                } else {
+                                    marker = locationMarkers.get(loc.id);
+                                }
+                                
+                                if (!markersByEan[ean]) markersByEan[ean] = [];
+                                // Only push if not already pushed for this EAN (just in case)
+                                if (!markersByEan[ean].includes(marker)) {
+                                    markersByEan[ean].push(marker);
+                                }
+                            }
+
+                            // Deduplicate for grid
+                            if (!medsMap.has(ean)) {
+                                medsMap.set(ean, {
+                                    medication: stock.medication,
+                                    minPrice: stock.price,
+                                    locationsCount: 1
+                                });
+                            } else {
+                                const entry = medsMap.get(ean);
+                                entry.locationsCount++;
+                                if (stock.price < entry.minPrice) {
+                                    entry.minPrice = stock.price;
+                                }
+                            }
+                        });
+
+                        // Render Cards
+                        medsMap.forEach((entry, ean) => {
+                            const med = entry.medication;
+                            const card = document.createElement('a');
+                            card.href = `/m/${ean}`;
+                            card.className = 'mf-glass-card mf-med-card';
+                            
+                            card.innerHTML = `
+                                <div class="mf-med-header">
+                                    <div>
+                                        <h3 class="mf-med-name">${med.name}</h3>
+                                        <div class="mf-med-sub">${med.activeSubstance || 'Unknown'} • ${med.dosage || ''}</div>
+                                    </div>
+                                    ${med.prescriptionRequired ? '<i class="bi bi-file-medical" style="color:var(--clr-text-muted);" title="Prescription Required"></i>' : ''}
+                                </div>
+                                <div class="mf-med-price">from ${entry.minPrice} RON</div>
+                                <div class="mf-med-footer">
+                                    <span>${entry.locationsCount} pharmacies nearby</span>
+                                    <span>${med.form}</span>
+                                </div>
+                            `;
+                            
+                            // Add Hover listeners
+                            card.addEventListener('mouseenter', () => {
+                                if (markersByEan[ean]) {
+                                    markersByEan[ean].forEach(m => {
+                                        m.setIcon(pharmaIconHover);
+                                        m.setZIndexOffset(1000);
+                                    });
+                                }
+                            });
+                            card.addEventListener('mouseleave', () => {
+                                if (markersByEan[ean]) {
+                                    markersByEan[ean].forEach(m => {
+                                        m.setIcon(pharmaIcon);
+                                        m.setZIndexOffset(0);
+                                    });
+                                }
+                            });
+                            
+                            gridEl.appendChild(card);
+                        });
+                    });
+            }
+        });
+    </script>
+</th:block>
+
+</body>
+</html>

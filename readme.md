@@ -1,83 +1,47 @@
-# Project Overview & Requirements
+# Dev
 
-## Technical Stack
+dati un run la tot:
 
-- **IDE:** Antigravity
-- **Backend:**
-  - Java with Spring / Spring Boot
-  - JDBC / Hibernate
-  - REST API
-  - Relational Database (SQL)
-- **Frontend:**
-  - JavaScript / TypeScript
-  - React / Angular / Ember.js (Templating Language) or other options
+```bash
+docker compose up --build
+```
 
-## Reference Links
+porneste si mailpit pentru testare de mailuri, si aplicatia noastra.
 
-- [Dr. Max - Enterogermina Forte](https://www.drmax.ro/enterogermina-forte-suspensie-orala-10-flacoane-sanofi)
-- [Compari.ro - ASUS ROG Strix OLED](https://www.compari.ro/monitoare-c3126/asus/rog-strix-oled-xg27aqwmg-p1272818941/)
-  
-  <img width="1189" height="420" alt="Screenshot 2026-06-15 at 20 10 43" src="https://github.com/user-attachments/assets/ba9e8eb0-1654-4abd-a91f-516b0b6bb7c5" />
+si vezi user ui la `http://localhost:8080`
+Mailpit server la `http://localhost:8025`
 
-- [OpenFreeMap](https://openfreemap.org/)
-  [https://wiki.openstreetmap.org/wiki/GeoJSON]
+La startup se populeaza baza de date H2 in-memory cu tot ce trebuie din
+`medapp/src/main/java/ro/medfinder/medapp/config/DataLoader.java`
+
+La `/admin/` te poti loga cu
+mail: `admin@medfinder.ro`
+pass: `admin123`
 
 ---
 
-## Frontend Requirements
+Daca vrei sa vezi toate scripturile, insteleaza [just](https://github.com/casey/just#cross-platform), care e un fel de Makefile gen, si te lasa sa vezi toate scripturikle noastre si sa le rulezi usorel:
 
-### Storefront
+```bash
+viktorashi@viktorashis-MacBook-Air.local innovation-management/medapp [feat/user-frontend]
+just
+just -l
+Available recipes:
+    default
+    run        # Docker compose-u cu mailpit si ce-o mai fi
+    run-single
+    test
+```
 
-1. **Listing:** Pharmacies (Farmacii)
-2. **Map:** Pharmacies (Harta Farmacii)
-3. **Listing:** Medications (Medicamente)
-4. **Search & Filter**
-5. **Categories:** Pharmacies and Medications
+Sau individual doar java-u cu:
 
-#### User Flows & Business Model
-
-- **Home v1 (Switch between Medications / Pharmacies):**
-  - **If Pharmacies:**
-    - Search/Filter/List Pharmacies $\rightarrow$ Pharmacy PDP $\rightarrow$ List Meds of that Pharmacy $\rightarrow$ Selected Medication PDP
-  - **If Medications (Home v2):**
-    - Search/Filter/List Medications $\rightarrow$ Selected Medication PDP $\rightarrow$ Medication Stock $\rightarrow$ Click & Collect $\rightarrow$ Payment System (Price per time reserved) $\rightarrow$ Map with Pharmacies $\rightarrow$ Pharmacy Listing $\rightarrow$ Pharmacy Filters (Default: Price, Location)
-- **User Account:**
-  - Login / Create Account
-
-### Admin Panel
-
-- **Account Creation:** Create Account for Pharmacists
-- **Login & Roles:**
-  - **Super User (CRUD):**
-    - Admin Users (Pharmacists)
-    - Pharmacies
-    - Medications
-    - Clients (Frontend)
-    - Orders (Requests for Meds) + Graphs/Statistics + Manual DB Sync for Pharmacy - note: nah but the sync shouldn't be only manual from DB, according to `notes/perete-wapp.md`
-  - **Business User:**
-    - Pharmacy / Pharmacies management
-    - Medications management
-    - Clients + Orders (Accept / Reject / Undo) + Graphs/Statistics + Manual DB Sync for Pharmacy - note: nah but the sync shouldn't be only manual from DB, according to `notes/perete-wapp.md`
-  - **Regular User**:
-    - Can place orders
+```bash
+cd medapp && ./gradlew bootRun
+```
 
 ---
 
-## Backend Requirements
+# Demo-ing
 
-- **Relational Database**
-- **REST API**
-- **Database Entities / Classes:**
-  - `Users` (4 Roles: Client, Super User, Owner, Pharmacist $\rightarrow$ Linked to Location)
-  - `Pharmacies`
-  - `Locations`
-  - `LM_Stock` (Many-to-Many relationship between Pharmacy and Medication)
-  - `Medications`
-  - `Orders` (Requests for Medications)
-- **Sync & Import:** Sync/Import CSV / DB / ERP data of a pharmacy (via GET)
-- **Click & Collect (Reservation):**
-  - Triggers actions and states in Admin panel
-  - Actions: Accept / Reject / Undo
-- **Authentication & Authorization**
-- **Account Creation**
-- **Notifications:** Admin / Email / Phone
+Daca vrei sa vezi in actiune, din interfata de user normal, poti sa faci rezervare de o chestie, si dupa din
+`/admin/dashboard`, in alt browser vine adminnu sa-ti dea accept la click & collect.

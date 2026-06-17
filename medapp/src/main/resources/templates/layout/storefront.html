@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" 
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MedFinder</title>
+
+    <!-- Google Fonts: Outfit for Display, Inter for Body -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@500;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+
+    <!-- Custom Storefront CSS -->
+    <link rel="stylesheet" th:href="@{/css/storefront.css}">
+</head>
+<body>
+
+    <!-- Sticky Top Navigation / Searchbar -->
+    <header class="mf-header">
+        <div class="mf-container">
+            <div class="mf-nav-inner">
+                <a href="/" class="mf-logo">Med<span>Finder</span></a>
+                
+                <div class="mf-search-wrapper">
+                    <i class="bi bi-search mf-search-icon"></i>
+                    <input type="text" id="global-search" class="mf-search-input" placeholder="Search medications, EAN, or active ingredients...">
+                </div>
+
+                <div class="mf-nav-actions" style="display:flex; align-items:center; gap: 15px;">
+                    <!-- Notification Bell (Only for Authenticated Users) -->
+                    <div sec:authorize="isAuthenticated()" class="mf-bell-wrapper" id="notif-bell">
+                        <i class="bi bi-bell"></i>
+                        <span class="mf-bell-badge" id="notif-badge">0</span>
+                        
+                        <div class="mf-notif-dropdown" id="notif-dropdown">
+                            <div class="mf-notif-header">Notifications</div>
+                            <div id="notif-list">
+                                <div class="mf-notif-item"><div class="mf-notif-body">No unread notifications.</div></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Unauthenticated -->
+                    <div sec:authorize="isAnonymous()" style="display:flex; align-items:center; gap: 15px;">
+                        <a href="/auth/login" class="mf-btn mf-btn-outline">Sign In</a>
+                    </div>
+                    
+                    <!-- Authenticated -->
+                    <div sec:authorize="isAuthenticated()" id="acc-dropdown-wrapper" style="display:flex; align-items:center; gap: 15px; position: relative;">
+                        <!-- Dropdown Trigger -->
+                        <div style="display:flex; align-items:center; gap:8px; cursor:pointer;" onclick="document.getElementById('acc-dropdown').classList.toggle('show')">
+                            <i class="bi bi-person-circle" style="font-size: 1.2rem; color: var(--clr-accent);"></i>
+                            <span style="color: var(--clr-text); font-weight: 500;" sec:authentication="name">User</span>
+                            <i class="bi bi-chevron-down" style="font-size: 0.8rem; color: var(--clr-secondary);"></i>
+                        </div>
+                        
+                        <!-- Dropdown Menu -->
+                        <div id="acc-dropdown" class="mf-notif-dropdown" style="right: 0; min-width: 200px; padding-bottom: 8px;">
+                            <div class="mf-notif-header" style="border-bottom: 1px solid var(--clr-border);">Account</div>
+                            
+                            <a sec:authorize="hasAnyAuthority('SUPER_USER', 'PHARM_OWNER', 'PHARMACIST')" th:href="@{/admin/dashboard}" style="display: block; padding: 12px 16px; color: var(--clr-text); text-decoration: none; border-bottom: 1px solid var(--clr-border); cursor: pointer;">
+                                <i class="bi bi-speedometer2" style="margin-right: 8px;"></i> Admin Dashboard
+                            </a>
+                            <a sec:authorize="hasAnyAuthority('CLIENT')" th:href="@{/reservations}" style="display: block; padding: 12px 16px; color: var(--clr-text); text-decoration: none; border-bottom: 1px solid var(--clr-border); cursor: pointer;">
+                                <i class="bi bi-box-seam" style="margin-right: 8px;"></i> My Reservations
+                            </a>
+                            
+                            <form th:action="@{/auth/logout}" method="post" style="margin: 0; padding: 12px 16px;">
+                                <button type="submit" style="background: none; border: none; color: #ff4757; font-size: 0.9rem; cursor: pointer; padding: 0; display:flex; align-items:center;">
+                                    <i class="bi bi-box-arrow-right" style="margin-right: 8px;"></i> Sign Out
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main layout:fragment="content">
+        <!-- Page specific content will go here -->
+    </main>
+
+
+    <!-- Toast Container -->
+    <div id="mf-toast-container"></div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    
+    <!-- Custom Scripts -->
+    <th:block layout:fragment="scripts"></th:block>
+
+    <!-- SockJS and STOMP for Notifications -->
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+    
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            // Global Search Listener
+            const searchInput = document.getElementById('global-search');
+            if (searchInput) {
+                searchInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        const query = encodeURIComponent(e.target.value.trim());
+                        if (query) {
+                            window.location.href = `/?search=${query}`;
+                        } else {
+                            window.location.href = `/`;
+                        }
+                    }
+                });
+            }
+
+            // Sync Settings Logic
+            const isAuth = document.getElementById('notif-bell') !== null;
+            let currentRadius = localStorage.getItem('mf_search_radius');
+
+            if (isAuth) {
+                fetch('/api/client/settings/radius')
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.radius !== -1) {
+                            // Backend has radius, sync it to localStorage
+                            if (currentRadius != data.radius) {
+                                localStorage.setItem('mf_search_radius', data.radius);
+                                window.dispatchEvent(new CustomEvent('radiusSynced', { detail: data.radius }));
+                            }
+                        } else if (currentRadius) {
+                            // Backend has NO radius, but we have local one -> sync up
+                            const fd = new URLSearchParams();
+                            fd.append('val', currentRadius);
+                            fetch('/api/client/settings/radius', {
+                                method: 'POST',
+                                body: fd
+                            });
+                        }
+                    })
+                    .catch(e => console.error("Error syncing settings", e));
+            }
+
+            const bellWrapper = document.getElementById('notif-bell');
+            if (!bellWrapper) return; // Not authenticated, no bell
+
+            const notifBadge = document.getElementById('notif-badge');
+            const notifList = document.getElementById('notif-list');
+            const toastContainer = document.getElementById('mf-toast-container');
+            let unreadCount = 0;
+
+            // Toggle Dropdown
+            bellWrapper.addEventListener('click', function(e) {
+                // Prevent click on items from closing it immediately if we handle it
+                if(e.target.closest('.mf-notif-item')) return;
+                bellWrapper.classList.toggle('active');
+            });
+
+            // Close when clicking outside
+            document.addEventListener('click', function(e) {
+                if (!bellWrapper.contains(e.target)) {
+                    bellWrapper.classList.remove('active');
+                }
+                const accWrapper = document.getElementById('acc-dropdown-wrapper');
+                if (accWrapper && !accWrapper.contains(e.target)) {
+                    const accDropdown = document.getElementById('acc-dropdown');
+                    if (accDropdown) {
+                        accDropdown.classList.remove('show');
+                    }
+                }
+            });
+
+            // 1. Fetch Client ID
+            fetch('/api/notifications/me?_t=' + new Date().getTime())
+                .then(res => res.json())
+                .then(clientId => {
+                    if(clientId === -1) return; // No client logged in (mock)
+
+                    // 2. Fetch Unread
+                    fetchUnreadNotifications();
+
+                    // 3. Connect WebSockets
+                    const socket = new SockJS('/ws-notifications');
+                    const stompClient = Stomp.over(socket);
+                    stompClient.debug = null; // Disable debug logs
+
+                    stompClient.connect({}, function (frame) {
+                        stompClient.subscribe('/topic/client/' + clientId, function (message) {
+                            const notif = JSON.parse(message.body);
+                            showToast(notif);
+                            addNotifToList(notif);
+                            updateBadge(1);
+                        });
+                    });
+                });
+
+            function fetchUnreadNotifications() {
+                fetch('/api/notifications/unread?_t=' + new Date().getTime())
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.length > 0) {
+                            notifList.innerHTML = '';
+                            unreadCount = data.length;
+                            updateBadge(0); // Just set it
+                            data.forEach(n => addNotifToList(n, false));
+                        }
+                    });
+            }
+
+            function addNotifToList(notif, prepend = true) {
+                if (notifList.innerHTML.includes('No unread')) {
+                    notifList.innerHTML = '';
+                }
+                const div = document.createElement('div');
+                div.className = 'mf-notif-item';
+                div.innerHTML = `
+                    <div class="mf-notif-title">${notif.subject}</div>
+                    <div class="mf-notif-body">${notif.message}</div>
+                `;
+                div.addEventListener('click', () => markAsRead(notif.id, div));
+                
+                if (prepend) {
+                    notifList.insertBefore(div, notifList.firstChild);
+                } else {
+                    notifList.appendChild(div);
+                }
+            }
+
+            function markAsRead(id, element) {
+                fetch(`/api/notifications/${id}/read`, { method: 'POST' })
+                    .then(res => {
+                        if (res.ok) {
+                            element.remove();
+                            updateBadge(-1);
+                            if (notifList.children.length === 0) {
+                                notifList.innerHTML = '<div class="mf-notif-item"><div class="mf-notif-body">No unread notifications.</div></div>';
+                            }
+                        } else {
+                            console.error('Failed to mark notification as read:', res.status);
+                        }
+                    })
+                    .catch(err => console.error('Error marking as read:', err));
+            }
+
+            function updateBadge(change) {
+                unreadCount += change;
+                if (unreadCount > 0) {
+                    notifBadge.style.display = 'block';
+                    notifBadge.innerText = unreadCount;
+                } else {
+                    notifBadge.style.display = 'none';
+                    unreadCount = 0;
+                }
+            }
+
+            function showToast(notif) {
+                const toast = document.createElement('div');
+                toast.className = 'mf-toast';
+                toast.innerHTML = `
+                    <div class="mf-toast-header">
+                        <span>${notif.subject}</span>
+                        <button class="mf-toast-close">&times;</button>
+                    </div>
+                    <div class="mf-toast-body">${notif.message}</div>
+                `;
+                
+                toastContainer.appendChild(toast);
+                
+                // Trigger reflow to animate
+                setTimeout(() => toast.classList.add('show'), 10);
+
+                const closeBtn = toast.querySelector('.mf-toast-close');
+                closeBtn.addEventListener('click', () => {
+                    toast.classList.remove('show');
+                    setTimeout(() => toast.remove(), 400);
+                });
+            }
+        });
+
+    </script>
+</body>
+</html>
