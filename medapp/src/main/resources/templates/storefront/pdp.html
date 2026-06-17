@@ -58,37 +58,40 @@
         <div id="pdp-map" class="mf-pdp-map mf-glass-card" style="padding:0; border:1px solid var(--clr-border);"></div>
     </div>
 
-    <!-- Reservation Modal -->
-    <div class="modal fade" id="reservationModal" tabindex="-1" aria-labelledby="reservationModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content mf-glass-card border-0" style="background: rgba(36, 40, 59, 0.95); color: var(--clr-text);">
-                <div class="modal-header border-bottom-0">
-                    <h5 class="modal-title" id="reservationModalLabel" style="color: #fff;"><i class="bi bi-clock-history"></i> Reserve Medication</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="reservationForm">
-                        <input type="hidden" id="resLocationId">
-                        <input type="hidden" id="resMedicationId">
-                        
-                        <div class="mb-3">
-                            <label for="resQuantity" class="form-label" style="color: var(--clr-text-muted);">How many units?</label>
-                            <input type="number" class="form-control" id="resQuantity" value="1" min="1" required style="background: rgba(0,0,0,0.2); border: 1px solid var(--clr-border); color: #fff;">
-                        </div>
-                        <div class="mb-3">
-                            <label for="resHours" class="form-label" style="color: var(--clr-text-muted);">Duration (Hours)</label>
-                            <input type="number" class="form-control" id="resHours" value="2" min="1" max="24" required style="background: rgba(0,0,0,0.2); border: 1px solid var(--clr-border); color: #fff;">
-                            <small class="text-muted mt-1 d-block"><i class="bi bi-info-circle"></i> 0-2h is free, 3-24h applies a holding fee.</small>
-                        </div>
-                    </form>
-                    
-                    <div id="resAlert" class="alert d-none mt-3" role="alert"></div>
-                </div>
-                <div class="modal-footer border-top-0">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn mf-btn-primary" id="confirmResBtn" onclick="submitReservation()">Confirm Reservation</button>
-                </div>
+    <!-- Vanilla CSS Reservation Modal -->
+    <div id="reservationModal" class="mf-modal-backdrop">
+        <div class="mf-glass-card mf-modal-content">
+            
+            <div class="mf-modal-header">
+                <h5 class="mf-modal-title"><i class="bi bi-clock-history"></i> Reserve Medication</h5>
+                <button type="button" class="mf-modal-close" onclick="closeModal()">&times;</button>
             </div>
+            
+            <div class="mf-modal-body">
+                <form id="reservationForm" onsubmit="event.preventDefault(); submitReservation();">
+                    <input type="hidden" id="resLocationId">
+                    <input type="hidden" id="resMedicationId">
+                    
+                    <div class="mf-form-group">
+                        <label for="resQuantity" class="mf-form-label">How many units?</label>
+                        <input type="number" id="resQuantity" class="mf-form-control" value="1" min="1" required>
+                    </div>
+                    
+                    <div class="mf-form-group">
+                        <label for="resHours" class="mf-form-label">Duration (Hours)</label>
+                        <input type="number" id="resHours" class="mf-form-control" value="2" min="1" max="24" required>
+                        <small class="mf-form-text"><i class="bi bi-info-circle"></i> 0-2h is free, 3-24h applies a holding fee.</small>
+                    </div>
+                </form>
+                
+                <div id="resAlert" class="mf-alert"></div>
+            </div>
+            
+            <div class="mf-modal-footer">
+                <button type="button" class="mf-btn mf-btn-outline" id="cancelResBtn" onclick="closeModal()">Cancel</button>
+                <button type="button" class="mf-btn mf-btn-primary" id="confirmResBtn" onclick="submitReservation()">Confirm Reservation</button>
+            </div>
+            
         </div>
     </div>
 
@@ -100,10 +103,10 @@
         const stocks = /*[[${stocks}]]*/ [];
         /*]]>*/
 
-        let resModal;
+        let resModalElement;
 
         document.addEventListener("DOMContentLoaded", function() {
-            resModal = new bootstrap.Modal(document.getElementById('reservationModal'));
+            resModalElement = document.getElementById('reservationModal');
 
             // 1. Sort rows by price
             const list = document.querySelector('.mf-price-list');
@@ -178,6 +181,14 @@
             }
         });
 
+        // Custom Modal Logic
+        function openModal() {
+            resModalElement.style.display = 'flex';
+        }
+        function closeModal() {
+            resModalElement.style.display = 'none';
+        }
+
         // Click & Collect Logic
         function reserve(locationId, medicationId, price) {
             document.getElementById('resLocationId').value = locationId;
@@ -186,12 +197,13 @@
             document.getElementById('resHours').value = "2";
             
             const alertDiv = document.getElementById('resAlert');
-            alertDiv.className = 'alert d-none mt-3';
+            alertDiv.style.display = 'none';
             alertDiv.innerHTML = '';
             
             document.getElementById('confirmResBtn').style.display = 'block';
             document.getElementById('reservationForm').style.display = 'block';
-            resModal.show();
+            document.getElementById('cancelResBtn').innerText = 'Cancel';
+            openModal();
         }
 
         function submitReservation() {
@@ -202,7 +214,8 @@
             const alertDiv = document.getElementById('resAlert');
             
             if (!quantity || quantity <= 0 || !hours || hours <= 0 || hours > 24) {
-                alertDiv.className = 'alert alert-warning mt-3';
+                alertDiv.style.display = 'block';
+                alertDiv.className = 'mf-alert mf-alert-warning';
                 alertDiv.innerHTML = 'Please enter valid inputs (Quantity > 0, Hours 1-24).';
                 return;
             }
@@ -233,17 +246,19 @@
                     
                     const expiresStr = order.expiresAt ? new Date(order.expiresAt).toLocaleString() : 'N/A';
                     
-                    alertDiv.className = 'alert alert-success mt-3';
+                    alertDiv.style.display = 'block';
+                    alertDiv.className = 'mf-alert mf-alert-success';
                     alertDiv.innerHTML = `<strong>Reservation successful!</strong><br>
                                           Order #: <b>${order.orderNumber}</b><br>
                                           Total to pay at pharmacy: <b>${order.totalPrice} RON</b><br>
                                           (Holding fee: ${order.holdingFee} RON)<br><br>
                                           <i class="bi bi-stopwatch"></i> Reserved until: <b>${expiresStr}</b>`;
-                                          
-                    setTimeout(() => window.location.reload(), 3000);
+                    
+                    document.getElementById('cancelResBtn').innerText = 'Close';
                 } else {
                     const err = await response.text();
-                    alertDiv.className = 'alert alert-danger mt-3';
+                    alertDiv.style.display = 'block';
+                    alertDiv.className = 'mf-alert mf-alert-danger';
                     alertDiv.innerHTML = "<strong>Failed to reserve:</strong> " + err;
                 }
             })
@@ -252,7 +267,8 @@
                 btn.innerHTML = 'Confirm Reservation';
                 
                 console.error("Error:", error);
-                alertDiv.className = 'alert alert-danger mt-3';
+                alertDiv.style.display = 'block';
+                alertDiv.className = 'mf-alert mf-alert-danger';
                 alertDiv.innerHTML = "An error occurred during reservation.";
             });
         }

@@ -592,3 +592,126 @@ a {
     font-size: 14px;
     color: var(--clr-text);
 }
+
+/* ── 6. Modals & Forms ───────────────────────────────────────────────────── */
+
+.mf-modal-backdrop {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0,0,0,0.6);
+    z-index: 9999;
+    justify-content: center;
+    align-items: center;
+    backdrop-filter: blur(4px);
+}
+
+.mf-modal-content {
+    background: rgba(36, 40, 59, 0.95);
+    width: 100%;
+    max-width: 450px;
+    border: 1px solid var(--clr-border);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    border-radius: 12px;
+    padding: 0;
+}
+
+.mf-modal-header {
+    padding: 20px;
+    border-bottom: 1px solid var(--clr-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.mf-modal-title {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+.mf-modal-close {
+    background: transparent;
+    border: none;
+    color: var(--clr-text-muted);
+    font-size: 1.5rem;
+    cursor: pointer;
+    line-height: 1;
+}
+
+.mf-modal-close:hover {
+    color: var(--clr-text);
+}
+
+.mf-modal-body {
+    padding: 20px;
+}
+
+.mf-modal-footer {
+    padding: 15px 20px;
+    border-top: 1px solid var(--clr-border);
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.mf-form-group {
+    margin-bottom: 15px;
+}
+
+.mf-form-label {
+    display: block;
+    margin-bottom: 8px;
+    color: var(--clr-text-muted);
+}
+
+.mf-form-control {
+    width: 100%;
+    padding: 10px;
+    background: rgba(0,0,0,0.2);
+    border: 1px solid var(--clr-border);
+    color: #fff;
+    border-radius: 6px;
+    outline: none;
+    font-family: var(--font-body);
+}
+
+.mf-form-control:focus {
+    border-color: var(--clr-accent);
+}
+
+.mf-form-text {
+    display: block;
+    margin-top: 6px;
+    color: var(--clr-text-muted);
+    font-size: 0.85rem;
+}
+
+.mf-alert {
+    display: none;
+    padding: 15px;
+    border-radius: 6px;
+    margin-top: 15px;
+    border: 1px solid transparent;
+}
+
+.mf-alert-warning {
+    background-color: rgba(255, 193, 7, 0.1);
+    border-color: rgba(255, 193, 7, 0.3);
+    color: #ffc107;
+}
+
+.mf-alert-success {
+    background-color: rgba(40, 167, 69, 0.1);
+    border-color: rgba(40, 167, 69, 0.3);
+    color: #28a745;
+}
+
+.mf-alert-danger {
+    background-color: rgba(220, 53, 69, 0.1);
+    border-color: rgba(220, 53, 69, 0.3);
+    color: #dc3545;
+}
