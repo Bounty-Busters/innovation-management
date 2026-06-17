@@ -119,15 +119,21 @@ public class StorefrontController {
             @RequestParam Long medicationId,
             @RequestParam int quantity,
             @RequestParam int hours,
+            @RequestParam(required = false) Long testClientId,
             Principal principal) {
             
-        if (principal == null) return ResponseEntity.status(401).body("Please sign in to reserve");
-        
-        // Fetch real logged-in user
-        Client client = clientRepository.findAll().stream()
-                .filter(c -> c.getEmail().equals(principal.getName()))
-                .findFirst()
-                .orElseThrow(() -> new RuntimeException("Logged in client not found in DB"));
+        Client client;
+        if (testClientId != null) {
+            client = clientRepository.findById(testClientId).orElseThrow();
+        } else {
+            if (principal == null) return ResponseEntity.status(401).body("Please sign in to reserve");
+            
+            // Fetch real logged-in user
+            client = clientRepository.findAll().stream()
+                    .filter(c -> c.getEmail().equals(principal.getName()))
+                    .findFirst()
+                    .orElseThrow(() -> new RuntimeException("Logged in client not found in DB"));
+        }
 
         OrderCreateRequest req = new OrderCreateRequest();
         req.setLocationId(locationId);

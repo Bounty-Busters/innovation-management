@@ -91,7 +91,21 @@ public class ClientOrderService {
                 client.getId(), req.getLocationId(), req.getMedicationId(),
                 ACTIVE_STATUSES, startOfDay);
 
+        log.info("Checking anti-hoarding limit: clientId={}, locId={}, medId={}, startOfDay={}, alreadyExists={}", 
+                 client.getId(), req.getLocationId(), req.getMedicationId(), startOfDay, alreadyExists);
+
         if (alreadyExists) {
+            // Also fetch the conflicting orders to see what's wrong!
+            List<Order> conflictingOrders = orderRepository.findAll().stream()
+                .filter(o -> o.getClient().getId().equals(client.getId()))
+                .filter(o -> o.getPickupLocation().getId().equals(req.getLocationId()))
+                .toList();
+            log.info("Conflicting orders found in DB manually: {}", conflictingOrders.size());
+            for (Order co : conflictingOrders) {
+                log.info("Order ID: {}, Status: {}, CreatedAt: {}, Items: {}", co.getId(), co.getStatus(), co.getCreatedAt(), 
+                    co.getItems().stream().map(i -> i.getMedication().getId()).toList());
+            }
+
             throw new IllegalStateException(
                     "You already have an active reservation for this medication at this location today.");
         }

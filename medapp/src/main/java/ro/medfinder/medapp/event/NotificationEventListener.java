@@ -6,6 +6,7 @@ import org.springframework.context.event.EventListener;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 import ro.medfinder.medapp.entity.Notification;
@@ -29,6 +30,7 @@ public class NotificationEventListener {
     private final SimpMessagingTemplate messagingTemplate;
 
     @Async
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW)
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleOrderStatusChangedEvent(OrderStatusChangedEvent event) {
         Order order = event.getOrder();
@@ -53,7 +55,8 @@ public class NotificationEventListener {
                 .build();
 
         try {
-            notificationRepository.save(notification);
+            // Re-assign the reference to get the generated ID reliably
+            notification = notificationRepository.saveAndFlush(notification);
             
             // Send Email
             emailService.sendOrderStatusEmail(notification, order);
