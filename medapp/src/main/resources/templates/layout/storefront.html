@@ -1,5 +1,7 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout">
+<html lang="en" xmlns:th="http://www.thymeleaf.org" 
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -32,9 +34,9 @@
                     <input type="text" id="global-search" class="mf-search-input" placeholder="Search medications, EAN, or active ingredients...">
                 </div>
 
-                <div class="mf-nav-actions" style="display:flex; align-items:center;">
-                    <!-- Notification Bell -->
-                    <div class="mf-bell-wrapper" id="notif-bell">
+                <div class="mf-nav-actions" style="display:flex; align-items:center; gap: 15px;">
+                    <!-- Notification Bell (Only for Authenticated Users) -->
+                    <div sec:authorize="isAuthenticated()" class="mf-bell-wrapper" id="notif-bell">
                         <i class="bi bi-bell"></i>
                         <span class="mf-bell-badge" id="notif-badge">0</span>
                         
@@ -46,7 +48,18 @@
                         </div>
                     </div>
 
-                    <a href="/login" class="mf-btn mf-btn-outline">Sign In</a>
+                    <!-- Unauthenticated -->
+                    <div sec:authorize="isAnonymous()">
+                        <a href="/auth/login" class="mf-btn mf-btn-outline">Sign In</a>
+                    </div>
+                    
+                    <!-- Authenticated -->
+                    <div sec:authorize="isAuthenticated()" style="display:flex; align-items:center; gap: 15px;">
+                        <span style="color: var(--clr-text); font-weight: 500;" sec:authentication="name">User</span>
+                        <form th:action="@{/auth/logout}" method="post" style="margin: 0;">
+                            <button type="submit" class="mf-btn mf-btn-outline" style="padding: 6px 12px; border-color: #ff4757; color: #ff4757; font-size: 0.9rem;">Sign Out</button>
+                        </form>
+                    </div>
                 </div>
             </div>
         </div>
@@ -73,6 +86,8 @@
     <script>
         document.addEventListener("DOMContentLoaded", function() {
             const bellWrapper = document.getElementById('notif-bell');
+            if (!bellWrapper) return; // Not authenticated, no bell
+
             const notifBadge = document.getElementById('notif-badge');
             const notifList = document.getElementById('notif-list');
             const toastContainer = document.getElementById('mf-toast-container');

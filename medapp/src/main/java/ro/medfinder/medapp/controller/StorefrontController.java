@@ -12,6 +12,7 @@ import ro.medfinder.medapp.service.ClientOrderService;
 import ro.medfinder.medapp.service.HoldingFeeCalculator;
 import ro.medfinder.medapp.dto.OrderCreateRequest;
 
+import java.security.Principal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -97,11 +98,16 @@ public class StorefrontController {
             @RequestParam Long locationId,
             @RequestParam Long medicationId,
             @RequestParam int quantity,
-            @RequestParam int hours) {
-
-        // 1. Mock currently logged in client (Client 1)
-        Client client = clientRepository.findAll().stream().findFirst()
-                .orElseThrow(() -> new RuntimeException("No clients found"));
+            @RequestParam int hours,
+            Principal principal) {
+            
+        if (principal == null) return ResponseEntity.status(401).body("Please sign in to reserve");
+        
+        // Fetch real logged-in user
+        Client client = clientRepository.findAll().stream()
+                .filter(c -> c.getEmail().equals(principal.getName()))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Logged in client not found in DB"));
 
         OrderCreateRequest req = new OrderCreateRequest();
         req.setLocationId(locationId);

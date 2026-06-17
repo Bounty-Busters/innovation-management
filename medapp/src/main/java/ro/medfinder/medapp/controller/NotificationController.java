@@ -10,6 +10,7 @@ import ro.medfinder.medapp.repository.ClientRepository;
 import ro.medfinder.medapp.repository.NotificationRepository;
 import ro.medfinder.medapp.dto.NotificationDto;
 
+import java.security.Principal;
 import java.util.List;
 
 @RestController
@@ -21,16 +22,23 @@ public class NotificationController {
     private final ClientRepository clientRepository;
 
     @GetMapping("/me")
-    public ResponseEntity<Long> getMyClientId() {
-        Client client = clientRepository.findAll().stream().findFirst().orElse(null);
+    public ResponseEntity<Long> getMyClientId(Principal principal) {
+        if (principal == null) return ResponseEntity.ok(-1L);
+        Client client = clientRepository.findAll().stream()
+                .filter(c -> c.getEmail().equals(principal.getName()))
+                .findFirst()
+                .orElse(null);
         return ResponseEntity.ok(client != null ? client.getId() : -1L);
     }
 
     @GetMapping("/unread")
-    public ResponseEntity<List<NotificationDto>> getUnreadNotifications() {
-        // Mock current client
-        Client client = clientRepository.findAll().stream().findFirst()
-                .orElseThrow(() -> new RuntimeException("No clients found"));
+    public ResponseEntity<List<NotificationDto>> getUnreadNotifications(Principal principal) {
+        if (principal == null) return ResponseEntity.status(401).build();
+        
+        Client client = clientRepository.findAll().stream()
+                .filter(c -> c.getEmail().equals(principal.getName()))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Logged in client not found in DB"));
 
         List<Notification> unread = notificationRepository
                 .findByRecipientIdAndStatusOrderByCreatedAtDesc(client.getId(), NotificationStatus.SENT);
@@ -47,9 +55,13 @@ public class NotificationController {
     }
 
     @PostMapping("/{id}/read")
-    public ResponseEntity<?> markAsRead(@PathVariable Long id) {
-        Client client = clientRepository.findAll().stream().findFirst()
-                .orElseThrow(() -> new RuntimeException("No clients found"));
+    public ResponseEntity<?> markAsRead(@PathVariable Long id, Principal principal) {
+        if (principal == null) return ResponseEntity.status(401).build();
+
+        Client client = clientRepository.findAll().stream()
+                .filter(c -> c.getEmail().equals(principal.getName()))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Logged in client not found in DB"));
 
         Notification notification = notificationRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Notification not found"));
