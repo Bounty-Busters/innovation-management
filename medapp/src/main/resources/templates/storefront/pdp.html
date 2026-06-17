@@ -31,7 +31,7 @@
             <!-- Sort stocks by price using Thymeleaf stream/sort (assuming they are pre-sorted or we sort here, let's assume controller didn't sort, we can sort them via CSS flex order or let JS handle, actually standard Thymeleaf lacks easy sort, but we can iterate as is. The requirement said "sorted list of prices". We should have sorted it in the controller, but we can do it here via a utility or we just iterate.) -->
             <!-- We'll assume the controller returns them as is, but we will sort them using JS or modify controller later. For now, just render them. -->
             
-            <div th:each="stock : ${stocks}" class="mf-glass-card mf-price-row" th:id="'stock-row-' + ${stock.id}" th:attr="data-price=${stock.price}, data-location-id=${stock.location.id}">
+            <div th:each="stock : ${stocks}" class="mf-glass-card mf-price-row" th:id="'stock-row-' + ${stock.id}" th:attr="data-price=${stock.price}, data-location-id=${stock.location.id}, data-lat=${stock.location.latitude}, data-lng=${stock.location.longitude}">
                 <div class="mf-pharmacy-info">
                     <div class="mf-pharmacy-logo" th:text="${#strings.substring(stock.location.pharmacyName, 0, 1)}">P</div>
                     <div class="mf-pharmacy-details">
@@ -165,10 +165,20 @@
                 // Add hover effect to rows
                 rows.forEach(row => {
                     const locId = row.dataset.locationId;
+                    const lat = parseFloat(row.dataset.lat);
+                    const lng = parseFloat(row.dataset.lng);
                     row.addEventListener('mouseenter', () => {
                         if (markersByLocation[locId]) {
                             markersByLocation[locId].setIcon(pharmaIconHover);
                             markersByLocation[locId].setZIndexOffset(1000);
+                            
+                            // Recenter/pan map to the hovered location if not currently visible in the bounds
+                            if (!isNaN(lat) && !isNaN(lng)) {
+                                const bounds = map.getBounds();
+                                if (!bounds.contains([lat, lng])) {
+                                    map.panTo([lat, lng]);
+                                }
+                            }
                         }
                     });
                     row.addEventListener('mouseleave', () => {
