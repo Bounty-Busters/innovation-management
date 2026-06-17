@@ -1,3 +1,5 @@
+# Dev
+
 dati un run la tot:
 
 ```bash
@@ -21,3 +23,10 @@ Sau individual doar java-u cu:
 ```bash
 cd medapp && ./gradlew bootRun
 ```
+
+---
+
+# Demo-ing
+
+Daca vrei sa vezi in actiune, din interfata de user normal, poti sa faci rezervare de o chestie, si dupa din
+`/admin/dashboard`, in alt browser vine adminnu sa-ti dea accept la click & collect.
