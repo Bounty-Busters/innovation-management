@@ -157,7 +157,10 @@
                     .then(data => {
                         if (data.radius !== -1) {
                             // Backend has radius, sync it to localStorage
-                            localStorage.setItem('mf_search_radius', data.radius);
+                            if (currentRadius != data.radius) {
+                                localStorage.setItem('mf_search_radius', data.radius);
+                                window.dispatchEvent(new CustomEvent('radiusSynced', { detail: data.radius }));
+                            }
                         } else if (currentRadius) {
                             // Backend has NO radius, but we have local one -> sync up
                             const fd = new URLSearchParams();

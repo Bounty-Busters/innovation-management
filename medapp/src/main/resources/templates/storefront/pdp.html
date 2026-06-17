@@ -29,7 +29,13 @@
     <div class="mf-col-2">
         <!-- Left: Price Comparison List -->
         <div class="mf-price-list">
-            <h2 class="mf-section-title" style="font-size: 24px;">Available at</h2>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 class="mf-section-title" style="margin-bottom: 0; font-size: 24px;">Available at</h2>
+                <div class="mf-glass-card" style="padding: 10px 15px; display: flex; align-items: center; gap: 15px; background: rgba(36, 40, 59, 0.8);">
+                    <label for="pdpSearchRadius" style="margin:0; font-weight: 500; color: var(--clr-text-muted); font-size: 14px;">Radius: <span id="pdpRadiusVal">10</span> km</label>
+                    <input type="range" id="pdpSearchRadius" class="mf-form-control" style="width: 120px; margin: 0; padding: 0;" min="1" max="100" value="10">
+                </div>
+            </div>
             
             <div th:if="${#lists.isEmpty(stocks)}" class="mf-glass-card">
                 Out of stock everywhere nearby.
@@ -156,13 +162,14 @@
                     iconAnchor: [12, 12]
                 });
 
-                const markersByLocation = {};
-
-                // Add markers and filter rows
-                
                 const userLatStr = localStorage.getItem('mf_user_lat');
                 const userLngStr = localStorage.getItem('mf_user_lng');
-                const searchRadiusKm = parseFloat(localStorage.getItem('mf_search_radius') || '10');
+                let searchRadiusKm = parseFloat(localStorage.getItem('mf_search_radius') || '10');
+                
+                const pdpSlider = document.getElementById('pdpSearchRadius');
+                const pdpRadiusVal = document.getElementById('pdpRadiusVal');
+                pdpSlider.value = searchRadiusKm;
+                pdpRadiusVal.innerText = searchRadiusKm;
                 
                 let userLat = userLatStr ? parseFloat(userLatStr) : 44.4268;
                 let userLng = userLngStr ? parseFloat(userLngStr) : 26.1025;
@@ -177,51 +184,103 @@
                     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
                     return R * c;
                 }
+                
+                let activeMarkersByLocation = {};
 
-                stocks.forEach(s => {
-                    const row = document.querySelector(`.mf-price-row[data-location-id="${s.location.id}"]`);
+                function renderStocks(radiusKm) {
+                    // Clear existing markers
+                    for (let id in activeMarkersByLocation) {
+                        map.removeLayer(activeMarkersByLocation[id]);
+                    }
+                    activeMarkersByLocation = {};
                     
-                    if(s.location.latitude && s.location.longitude) {
-                        const dist = getDistanceFromLatLonInKm(userLat, userLng, s.location.latitude, s.location.longitude);
-                        
-                        if (dist > searchRadiusKm) {
-                            if (row) row.style.display = 'none';
-                            return; // skip adding marker
-                        }
+                    let firstValidLat = null;
+                    let firstValidLng = null;
 
-                        const marker = L.marker([s.location.latitude, s.location.longitude], {icon: pharmaIcon})
-                         .addTo(map)
-                         .bindPopup(`<b>${s.location.pharmacyName}</b><br>${s.price} RON`);
-                         
-                        markersByLocation[s.location.id] = marker;
-
-                        // Reverse highlighting listeners
+                    stocks.forEach(s => {
                         const row = document.querySelector(`.mf-price-row[data-location-id="${s.location.id}"]`);
-                        if (row) {
-                            marker.on('mouseover', () => {
-                                marker.setIcon(pharmaIconHover);
-                                marker.setZIndexOffset(1000);
-                                row.classList.add('highlighted');
-                                row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-                            });
-                            marker.on('mouseout', () => {
-                                marker.setIcon(pharmaIcon);
-                                marker.setZIndexOffset(0);
-                                row.classList.remove('highlighted');
-                            });
+                        
+                        if(s.location.latitude && s.location.longitude) {
+                            const dist = getDistanceFromLatLonInKm(userLat, userLng, s.location.latitude, s.location.longitude);
+                            
+                            if (dist > radiusKm) {
+                                if (row) row.style.display = 'none';
+                                return; // skip adding marker
+                            }
+
+                            if (row) row.style.display = 'flex';
+
+                            if (firstValidLat === null) {
+                                firstValidLat = s.location.latitude;
+                                firstValidLng = s.location.longitude;
+                            }
+
+                            const marker = L.marker([s.location.latitude, s.location.longitude], {icon: pharmaIcon})
+                             .addTo(map)
+                             .bindPopup(`<b>${s.location.pharmacyName}</b><br>${s.price} RON`);
+                             
+                            activeMarkersByLocation[s.location.id] = marker;
+
+                            // Reverse highlighting listeners
+                            if (row) {
+                                marker.on('mouseover', () => {
+                                    marker.setIcon(pharmaIconHover);
+                                    marker.setZIndexOffset(1000);
+                                    row.classList.add('highlighted');
+                                    row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                                });
+                                marker.on('mouseout', () => {
+                                    marker.setIcon(pharmaIcon);
+                                    marker.setZIndexOffset(0);
+                                    row.classList.remove('highlighted');
+                                });
+                            }
                         }
+                    });
+                    
+                    if (firstValidLat !== null) {
+                        map.setView([firstValidLat, firstValidLng], 13);
+                    }
+                }
+                
+                // Initial render
+                renderStocks(searchRadiusKm);
+
+                // Live Slider Update
+                pdpSlider.addEventListener('input', (e) => {
+                    searchRadiusKm = parseFloat(e.target.value);
+                    pdpRadiusVal.innerText = searchRadiusKm;
+                    renderStocks(searchRadiusKm);
+                });
+
+                // Save on change complete
+                pdpSlider.addEventListener('change', (e) => {
+                    const newRadius = e.target.value;
+                    localStorage.setItem('mf_search_radius', newRadius);
+                    const isAuth = document.getElementById('notif-bell') !== null;
+                    if (isAuth) {
+                        const fd = new URLSearchParams();
+                        fd.append('val', newRadius);
+                        fetch('/api/client/settings/radius', { method: 'POST', body: fd }).catch(console.error);
                     }
                 });
-                
-                // Add hover effect to rows
+
+                window.addEventListener('radiusSynced', (e) => {
+                    searchRadiusKm = e.detail;
+                    pdpSlider.value = searchRadiusKm;
+                    pdpRadiusVal.innerText = searchRadiusKm;
+                    renderStocks(searchRadiusKm);
+                });
+
+                // Add hover effect to rows (bind once)
                 rows.forEach(row => {
                     const locId = row.dataset.locationId;
                     const lat = parseFloat(row.dataset.lat);
                     const lng = parseFloat(row.dataset.lng);
                     row.addEventListener('mouseenter', () => {
-                        if (markersByLocation[locId]) {
-                            markersByLocation[locId].setIcon(pharmaIconHover);
-                            markersByLocation[locId].setZIndexOffset(1000);
+                        if (activeMarkersByLocation[locId]) {
+                            activeMarkersByLocation[locId].setIcon(pharmaIconHover);
+                            activeMarkersByLocation[locId].setZIndexOffset(1000);
                             
                             // Recenter/pan map to the hovered location if not currently visible in the bounds
                             if (!isNaN(lat) && !isNaN(lng)) {
@@ -233,9 +292,9 @@
                         }
                     });
                     row.addEventListener('mouseleave', () => {
-                        if (markersByLocation[locId]) {
-                            markersByLocation[locId].setIcon(pharmaIcon);
-                            markersByLocation[locId].setZIndexOffset(0);
+                        if (activeMarkersByLocation[locId]) {
+                            activeMarkersByLocation[locId].setIcon(pharmaIcon);
+                            activeMarkersByLocation[locId].setZIndexOffset(0);
                         }
                     });
                 });

@@ -22,7 +22,13 @@
 
     <!-- Main Content -->
     <div class="mf-container">
-        <h2 id="radius-title" class="mf-section-title">Available Nearby</h2>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h2 id="radius-title" class="mf-section-title" style="margin-bottom: 0;">Available Nearby</h2>
+            <div class="mf-glass-card" style="padding: 10px 15px; display: flex; align-items: center; gap: 15px; background: rgba(36, 40, 59, 0.8);">
+                <label for="homeSearchRadius" style="margin:0; font-weight: 500; color: var(--clr-text-muted);">Radius: <span id="homeRadiusVal">10</span> km</label>
+                <input type="range" id="homeSearchRadius" class="mf-form-control" style="width: 150px; margin: 0; padding: 0;" min="1" max="100" value="10">
+            </div>
+        </div>
         
         <div id="nearby-meds-grid" class="mf-grid">
             <!-- Populated via Javascript -->
@@ -61,13 +67,57 @@
             });
 
             // 3. Geolocation & Radius
-            const searchRadiusKm = parseFloat(localStorage.getItem('mf_search_radius') || '10');
+            let searchRadiusKm = parseFloat(localStorage.getItem('mf_search_radius') || '10');
+            const radiusSlider = document.getElementById('homeSearchRadius');
+            const radiusValDisplay = document.getElementById('homeRadiusVal');
+            
+            radiusSlider.value = searchRadiusKm;
+            radiusValDisplay.innerText = searchRadiusKm;
             document.getElementById('radius-title').innerText = `Available in a ${searchRadiusKm}km Radius`;
 
             let userLat = 44.4268;
             let userLng = 26.1025;
             let radiusCircle = null;
             const recenterBtn = document.getElementById('recenter-btn');
+
+            // Live Slider Update
+            radiusSlider.addEventListener('input', (e) => {
+                searchRadiusKm = parseFloat(e.target.value);
+                radiusValDisplay.innerText = searchRadiusKm;
+                document.getElementById('radius-title').innerText = `Available in a ${searchRadiusKm}km Radius`;
+                
+                if (radiusCircle) {
+                    radiusCircle.setRadius(searchRadiusKm * 1000);
+                }
+            });
+
+            // Save and Fetch on change complete (mouse up)
+            radiusSlider.addEventListener('change', (e) => {
+                const newRadius = e.target.value;
+                localStorage.setItem('mf_search_radius', newRadius);
+                syncRadiusToBackend(newRadius);
+                fetchNearbyStocks(userLat, userLng, newRadius);
+            });
+
+            window.addEventListener('radiusSynced', (e) => {
+                searchRadiusKm = e.detail;
+                radiusSlider.value = searchRadiusKm;
+                radiusValDisplay.innerText = searchRadiusKm;
+                document.getElementById('radius-title').innerText = `Available in a ${searchRadiusKm}km Radius`;
+                if (radiusCircle) {
+                    radiusCircle.setRadius(searchRadiusKm * 1000);
+                }
+                fetchNearbyStocks(userLat, userLng, searchRadiusKm);
+            });
+
+            function syncRadiusToBackend(rad) {
+                const isAuth = document.getElementById('notif-bell') !== null;
+                if (isAuth) {
+                    const fd = new URLSearchParams();
+                    fd.append('val', rad);
+                    fetch('/api/client/settings/radius', { method: 'POST', body: fd }).catch(e => console.error(e));
+                }
+            }
 
             function drawUserLocation(lat, lng) {
                 // User marker
