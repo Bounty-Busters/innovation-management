@@ -24,7 +24,7 @@ public class SecurityConfig {
                 .requestMatchers("/h2-console/**").permitAll()
                 .requestMatchers("/", "/m/**", "/api/nearby", "/api/reserve", "/api/notifications/**", "/ws-notifications/**").permitAll()
                 .requestMatchers("/api/client/**").hasAuthority("CLIENT")
-                .requestMatchers("/admin/**").hasAnyAuthority("ADMIN", "PHARM_OWNER", "PHARMACIST")
+                .requestMatchers("/admin/**").hasAnyAuthority("SUPER_USER", "PHARM_OWNER", "PHARMACIST")
                 .anyRequest().authenticated()
             )
             .formLogin(form -> form
@@ -32,7 +32,7 @@ public class SecurityConfig {
                 .loginProcessingUrl("/auth/login")
                 .successHandler((request, response, authentication) -> {
                     boolean isStaff = authentication.getAuthorities().stream()
-                            .anyMatch(a -> a.getAuthority().equals("ADMIN") 
+                            .anyMatch(a -> a.getAuthority().equals("SUPER_USER") 
                                     || a.getAuthority().equals("PHARM_OWNER") 
                                     || a.getAuthority().equals("PHARMACIST"));
                     if (isStaff) {
