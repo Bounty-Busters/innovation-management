@@ -137,7 +137,14 @@ public class StorefrontController {
 
         try {
             Order order = clientOrderService.createOrder(client, req);
-            return ResponseEntity.ok(order);
+            
+            // Return only required fields to prevent Jackson infinite recursion on Order entity
+            return ResponseEntity.ok(java.util.Map.of(
+                    "orderNumber", order.getOrderNumber(),
+                    "totalPrice", order.getTotalPrice(),
+                    "holdingFee", order.getHoldingFee(),
+                    "expiresAt", order.getExpiresAt() != null ? order.getExpiresAt().toString() : ""
+            ));
         } catch (IllegalArgumentException | IllegalStateException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
