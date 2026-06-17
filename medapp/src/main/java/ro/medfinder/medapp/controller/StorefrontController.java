@@ -17,6 +17,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import ro.medfinder.medapp.config.CustomUserDetails;
 
 @Controller
 @RequestMapping("/")
@@ -36,6 +38,21 @@ public class StorefrontController {
     public String home(Model model) {
         // Will render the map and request GPS
         return "storefront/home";
+    }
+
+    @GetMapping("/reservations")
+    public String reservations(@AuthenticationPrincipal CustomUserDetails userDetails, Model model) {
+        if (userDetails == null) {
+            return "redirect:/auth/login";
+        }
+        if (!(userDetails.getUser() instanceof Client)) {
+            return "redirect:/";
+        }
+        Client client = (Client) userDetails.getUser();
+        List<Order> orders = clientOrderService.getClientOrders(client);
+        model.addAttribute("orders", orders);
+        model.addAttribute("client", client);
+        return "storefront/reservations";
     }
 
     @GetMapping("/m/{ean}")

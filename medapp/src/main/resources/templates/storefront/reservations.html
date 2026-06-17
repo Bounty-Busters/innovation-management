@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      layout:decorate="~{layout/storefront}">
+<head>
+    <title>My Reservations - MedFinder</title>
+    <style>
+        .mf-status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .status-pending {
+            background: rgba(255, 175, 64, 0.15);
+            color: #ffaf40;
+            border: 1px solid rgba(255, 175, 64, 0.3);
+        }
+        .status-accepted {
+            background: rgba(0, 240, 255, 0.1);
+            color: #00F0FF;
+            border: 1px solid rgba(0, 240, 255, 0.3);
+        }
+        .status-ready_for_pickup {
+            background: rgba(155, 89, 182, 0.15);
+            color: #9b59b6;
+            border: 1px solid rgba(155, 89, 182, 0.3);
+        }
+        .status-picked_up {
+            background: rgba(46, 204, 113, 0.15);
+            color: #2ecc71;
+            border: 1px solid rgba(46, 204, 113, 0.3);
+        }
+        .status-rejected {
+            background: rgba(231, 76, 60, 0.15);
+            color: #e74c3c;
+            border: 1px solid rgba(231, 76, 60, 0.3);
+        }
+        .status-cancelled {
+            background: rgba(149, 165, 166, 0.15);
+            color: #95a5a6;
+            border: 1px solid rgba(149, 165, 166, 0.3);
+        }
+        .status-expired {
+            background: rgba(230, 126, 34, 0.15);
+            color: #e67e22;
+            border: 1px solid rgba(230, 126, 34, 0.3);
+        }
+        .perks-card {
+            background: linear-gradient(135deg, rgba(0, 240, 255, 0.1) 0%, rgba(255, 0, 122, 0.1) 100%);
+            border: 1px solid var(--clr-border);
+            border-radius: var(--radius-md);
+            padding: 24px;
+            margin-bottom: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            backdrop-filter: blur(12px);
+        }
+        .perks-number {
+            font-size: 3rem;
+            font-weight: 800;
+            font-family: var(--font-display);
+            color: var(--clr-accent);
+            text-shadow: 0 0 15px var(--clr-accent-dim);
+            line-height: 1;
+        }
+        .reservation-card {
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            margin-bottom: 20px;
+            border: 1px solid var(--clr-border);
+        }
+        .reservation-card:hover {
+            border-color: var(--clr-secondary);
+            box-shadow: 0 8px 30px rgba(0, 240, 255, 0.1);
+            transform: translateY(-2px);
+        }
+        .card-details-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid var(--clr-border);
+        }
+        .detail-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            color: var(--clr-text-muted);
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+        .detail-value {
+            font-weight: 600;
+            color: var(--clr-text);
+        }
+        .no-reservations {
+            text-align: center;
+            padding: 60px 20px;
+            border: 1px dashed var(--clr-border);
+            border-radius: var(--radius-md);
+            color: var(--clr-text-muted);
+        }
+    </style>
+</head>
+<body>
+
+<main layout:fragment="content" class="mf-container" style="padding-top: 40px; padding-bottom: 80px;">
+    
+    <div style="margin-bottom: 32px;">
+        <h1 class="mf-section-title" style="font-size: 2.5rem; margin-bottom: 8px;">My Reservations</h1>
+        <p style="color: var(--clr-text-muted);">Manage your active Click & Collect reservations and view order history.</p>
+    </div>
+
+    <!-- Client Perks Section -->
+    <div class="perks-card">
+        <div style="display: flex; align-items: center; gap: 20px;">
+            <div style="background: rgba(0, 240, 255, 0.15); width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(0, 240, 255, 0.3);">
+                <i class="bi bi-gift" style="font-size: 1.8rem; color: var(--clr-accent);"></i>
+            </div>
+            <div>
+                <h3 style="font-family: var(--font-display); font-weight: 700; margin: 0 0 4px 0; font-size: 1.25rem;">Free Long Reservations Perks</h3>
+                <p style="color: var(--clr-text-muted); margin: 0; font-size: 0.9rem;">You have free holding fee reservations (up to 3 hours each) remaining.</p>
+            </div>
+        </div>
+        <div>
+            <div style="text-align: center;">
+                <span class="perks-number" id="perks-count" th:text="${client.freeLongReservationsLeft}">3</span>
+                <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--clr-accent); font-weight: 700; margin-top: 4px; letter-spacing: 1px;">Left</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reservations List -->
+    <div th:if="${#lists.isEmpty(orders)}" class="no-reservations">
+        <i class="bi bi-calendar-x" style="font-size: 3rem; color: var(--clr-text-muted); display: block; margin-bottom: 15px;"></i>
+        <h3>No reservations found</h3>
+        <p style="margin-bottom: 20px;">You haven't made any reservations yet.</p>
+        <a href="/" class="mf-btn mf-btn-primary">Browse Medications</a>
+    </div>
+
+    <div th:if="${!#lists.isEmpty(orders)}" style="display: flex; flex-direction: column; gap: 20px;">
+        <div th:each="order : ${orders}" class="mf-glass-card reservation-card" th:id="'order-card-' + ${order.id}">
+            
+            <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 15px; margin-bottom: 15px;">
+                <div>
+                    <span style="font-size: 0.8rem; font-family: var(--font-display); color: var(--clr-accent); font-weight: 700; letter-spacing: 0.5px; display: block; margin-bottom: 4px;" th:text="${order.orderNumber}">ORD-123456</span>
+                    <h3 style="margin: 0; font-family: var(--font-display); font-weight: 700; font-size: 1.35rem;" 
+                        th:text="${order.items[0].medication.name}">Medication Name</h3>
+                    <p style="color: var(--clr-text-muted); margin: 4px 0 0 0; font-size: 0.9rem;" 
+                       th:text="${order.items[0].medication.activeSubstance} + ' • ' + ${order.items[0].medication.dosage} + ' • ' + ${order.items[0].medication.form}">Med details</p>
+                </div>
+                
+                <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 8px;">
+                    <span th:class="'mf-status-badge status-' + ${#strings.toLowerCase(order.status)}" 
+                          th:id="'status-badge-' + ${order.id}">
+                        <i class="bi" th:classappend="${
+                            #strings.toString(order.status) == 'PENDING' ? 'bi-hourglass-split' :
+                            (#strings.toString(order.status) == 'ACCEPTED' ? 'bi-check-circle' :
+                            (#strings.toString(order.status) == 'READY_FOR_PICKUP' ? 'bi-bag-check' :
+                            (#strings.toString(order.status) == 'PICKED_UP' ? 'bi-bag-fill' :
+                            (#strings.toString(order.status) == 'REJECTED' ? 'bi-x-circle' :
+                            (#strings.toString(order.status) == 'CANCELLED' ? 'bi-dash-circle' : 'bi-calendar-x')))))
+                        }"></i>
+                        <span th:text="${order.status}">PENDING</span>
+                    </span>
+                </div>
+            </div>
+
+            <!-- Rejection Reason if any -->
+            <div th:if="${order.rejectionReason != null}" class="mf-alert mf-alert-danger" style="margin-bottom: 15px; display: block;">
+                <strong>Rejection Reason:</strong> <span th:text="${order.rejectionReason}">Reason</span>
+            </div>
+
+            <!-- Card Details Grid -->
+            <div class="card-details-grid">
+                <div>
+                    <div class="detail-label">Quantity</div>
+                    <div class="detail-value" th:text="${order.items[0].quantity} + ' units'">1 units</div>
+                </div>
+                <div>
+                    <div class="detail-label">Total Price</div>
+                    <div class="detail-value" style="color: var(--clr-accent);" th:text="${order.totalPrice} + ' RON'">15.00 RON</div>
+                </div>
+                <div>
+                    <div class="detail-label">Holding Fee</div>
+                    <div class="detail-value">
+                        <span th:if="${order.usedFreePerk}" style="color: #2ecc71;">
+                            <i class="bi bi-gift-fill"></i> Free Perk
+                        </span>
+                        <span th:if="${!order.usedFreePerk}" th:text="${order.holdingFee} + ' RON'">0.00 RON</span>
+                    </div>
+                </div>
+                <div>
+                    <div class="detail-label">Pickup Pharmacy</div>
+                    <div class="detail-value" th:text="${order.pickupLocation.pharmacy != null ? order.pickupLocation.pharmacy.name : order.pickupLocation.name}">Pharmacy</div>
+                    <div style="font-size: 0.8rem; color: var(--clr-text-muted); margin-top: 2px;" th:text="${order.pickupLocation.address} + ', ' + ${order.pickupLocation.city}">Address</div>
+                </div>
+                <div>
+                    <div class="detail-label">Reserved Until</div>
+                    <div class="detail-value" th:text="${#temporals.format(order.expiresAt, 'dd MMM yyyy, HH:mm')}">Expires At</div>
+                </div>
+            </div>
+
+            <!-- Action buttons inside card footer -->
+            <div th:if="${#strings.toString(order.status) == 'PENDING' or #strings.toString(order.status) == 'ACCEPTED' or #strings.toString(order.status) == 'READY_FOR_PICKUP'}" 
+                 th:id="'action-area-' + ${order.id}"
+                 style="display: flex; justify-content: flex-end; margin-top: 20px; padding-top: 15px; border-top: 1px solid var(--clr-border);">
+                <button type="button" class="mf-btn mf-btn-outline" 
+                        style="border-color: #ff4757; color: #ff4757;"
+                        th:id="'cancel-btn-' + ${order.id}"
+                        th:onclick="'cancelReservation(' + ${order.id} + ')'">
+                    Cancel Reservation
+                </button>
+            </div>
+            
+        </div>
+    </div>
+
+</main>
+
+<th:block layout:fragment="scripts">
+    <script>
+        function cancelReservation(orderId) {
+            if (!confirm("Are you sure you want to cancel this reservation?")) {
+                return;
+            }
+
+            const btn = document.getElementById(`cancel-btn-${orderId}`);
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm" style="width:1rem; height:1rem; border-width:0.15em;"></span> Cancelling...';
+            }
+
+            fetch(`/api/client/orders/${orderId}/cancel`, {
+                method: 'PUT'
+            })
+            .then(async response => {
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    // Update badge status
+                    const badge = document.getElementById(`status-badge-${orderId}`);
+                    if (badge) {
+                        badge.className = 'mf-status-badge status-cancelled';
+                        badge.innerHTML = '<i class="bi bi-dash-circle"></i> CANCELLED';
+                    }
+
+                    // Remove action buttons
+                    const actionArea = document.getElementById(`action-area-${orderId}`);
+                    if (actionArea) {
+                        actionArea.remove();
+                    }
+
+                    // Update free perks count dynamically
+                    const perksEl = document.getElementById('perks-count');
+                    if (perksEl && data.usedFreePerk) {
+                        const currentVal = parseInt(perksEl.innerText) || 0;
+                        perksEl.innerText = currentVal + 1;
+                    }
+
+                    // Show success feedback
+                    alert("Reservation cancelled successfully.");
+                } else {
+                    const err = await response.json();
+                    alert("Failed to cancel: " + (err.error || "Unknown error"));
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.innerHTML = 'Cancel Reservation';
+                    }
+                }
+            })
+            .catch(error => {
+                console.error("Error cancelling reservation:", error);
+                alert("An error occurred. Please try again.");
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = 'Cancel Reservation';
+                }
+            });
+        }
+    </script>
+</th:block>
+
+</body>
+</html>
