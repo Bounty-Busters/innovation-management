@@ -115,6 +115,7 @@ public class ClientOrderService {
                 .holdingFee(feeResult.fee())
                 .reservationHours(req.getReservationHours())
                 .usedFreePerk(feeResult.usedFreePerk())
+                .expiresAt(LocalDateTime.now().plusHours(req.getReservationHours()))
                 .client(client)
                 .pickupLocation(location)
                 .build();
