@@ -31,7 +31,7 @@
             <!-- Sort stocks by price using Thymeleaf stream/sort (assuming they are pre-sorted or we sort here, let's assume controller didn't sort, we can sort them via CSS flex order or let JS handle, actually standard Thymeleaf lacks easy sort, but we can iterate as is. The requirement said "sorted list of prices". We should have sorted it in the controller, but we can do it here via a utility or we just iterate.) -->
             <!-- We'll assume the controller returns them as is, but we will sort them using JS or modify controller later. For now, just render them. -->
             
-            <div th:each="stock : ${stocks}" class="mf-glass-card mf-price-row" th:id="'stock-row-' + ${stock.id}" th:attr="data-price=${stock.price}">
+            <div th:each="stock : ${stocks}" class="mf-glass-card mf-price-row" th:id="'stock-row-' + ${stock.id}" th:attr="data-price=${stock.price}, data-location-id=${stock.location.id}">
                 <div class="mf-pharmacy-info">
                     <div class="mf-pharmacy-logo" th:text="${#strings.substring(stock.location.pharmacyName, 0, 1)}">P</div>
                     <div class="mf-pharmacy-details">
@@ -134,18 +134,46 @@
 
                 const pharmaIcon = L.divIcon({
                     className: 'custom-div-icon',
-                    html: `<div style='background-color:#00F0FF;width:16px;height:16px;border-radius:50%;border:2px solid #0A0A0B;box-shadow:0 0 15px rgba(0,240,255,0.8);'></div>`,
+                    html: `<div style='background-color:#00F0FF;width:16px;height:16px;border-radius:50%;border:2px solid #0A0A0B;box-shadow:0 0 15px rgba(0,240,255,0.8); transition: all 0.3s ease;'></div>`,
                     iconSize: [16, 16],
                     iconAnchor: [8, 8]
                 });
 
+                const pharmaIconHover = L.divIcon({
+                    className: 'custom-div-icon',
+                    html: `<div style='background-color:#FF007A;width:24px;height:24px;border-radius:50%;border:2px solid #0A0A0B;box-shadow:0 0 25px rgba(255,0,122,1); transition: all 0.3s ease;'></div>`,
+                    iconSize: [24, 24],
+                    iconAnchor: [12, 12]
+                });
+
+                const markersByLocation = {};
+
                 // Add markers
                 stocks.forEach(s => {
                     if(s.location.latitude && s.location.longitude) {
-                        L.marker([s.location.latitude, s.location.longitude], {icon: pharmaIcon})
+                        const marker = L.marker([s.location.latitude, s.location.longitude], {icon: pharmaIcon})
                          .addTo(map)
                          .bindPopup(`<b>${s.location.pharmacyName}</b><br>${s.price} RON`);
+                         
+                        markersByLocation[s.location.id] = marker;
                     }
+                });
+                
+                // Add hover effect to rows
+                rows.forEach(row => {
+                    const locId = row.dataset.locationId;
+                    row.addEventListener('mouseenter', () => {
+                        if (markersByLocation[locId]) {
+                            markersByLocation[locId].setIcon(pharmaIconHover);
+                            markersByLocation[locId].setZIndexOffset(1000);
+                        }
+                    });
+                    row.addEventListener('mouseleave', () => {
+                        if (markersByLocation[locId]) {
+                            markersByLocation[locId].setIcon(pharmaIcon);
+                            markersByLocation[locId].setZIndexOffset(0);
+                        }
+                    });
                 });
             }
         });

@@ -48,9 +48,16 @@
             // 2. Custom Icon for Pharmacies
             const pharmaIcon = L.divIcon({
                 className: 'custom-div-icon',
-                html: `<div style='background-color:#00F0FF;width:12px;height:12px;border-radius:50%;border:2px solid #0A0A0B;box-shadow:0 0 10px rgba(0,240,255,0.8);'></div>`,
+                html: `<div style='background-color:#00F0FF;width:12px;height:12px;border-radius:50%;border:2px solid #0A0A0B;box-shadow:0 0 10px rgba(0,240,255,0.8); transition: all 0.3s ease;'></div>`,
                 iconSize: [12, 12],
                 iconAnchor: [6, 6]
+            });
+
+            const pharmaIconHover = L.divIcon({
+                className: 'custom-div-icon',
+                html: `<div style='background-color:#FF007A;width:20px;height:20px;border-radius:50%;border:2px solid #0A0A0B;box-shadow:0 0 20px rgba(255,0,122,1); transition: all 0.3s ease;'></div>`,
+                iconSize: [20, 20],
+                iconAnchor: [10, 10]
             });
 
             // 3. Geolocation
@@ -108,17 +115,35 @@
 
                         // Use a Map to deduplicate by EAN (show 1 card per medication)
                         const medsMap = new Map();
+                        const markersByEan = {};
+                        
+                        // Keep track of locations to avoid duplicate markers on map (since one pharmacy can have multiple meds)
+                        const locationMarkers = new Map(); 
+
                         data.forEach(stock => {
-                            // Add marker to map
+                            const ean = stock.medication.ean;
                             const loc = stock.location;
+                            
+                            // Add marker to map (one per pharmacy)
+                            let marker;
                             if (loc.latitude && loc.longitude) {
-                                L.marker([loc.latitude, loc.longitude], {icon: pharmaIcon})
-                                 .addTo(map)
-                                 .bindPopup(`<b>${loc.name}</b><br>${loc.address}`);
+                                if (!locationMarkers.has(loc.id)) {
+                                    marker = L.marker([loc.latitude, loc.longitude], {icon: pharmaIcon})
+                                     .addTo(map)
+                                     .bindPopup(`<b>${loc.pharmacyName || loc.name}</b><br>${loc.address}`);
+                                    locationMarkers.set(loc.id, marker);
+                                } else {
+                                    marker = locationMarkers.get(loc.id);
+                                }
+                                
+                                if (!markersByEan[ean]) markersByEan[ean] = [];
+                                // Only push if not already pushed for this EAN (just in case)
+                                if (!markersByEan[ean].includes(marker)) {
+                                    markersByEan[ean].push(marker);
+                                }
                             }
 
                             // Deduplicate for grid
-                            const ean = stock.medication.ean;
                             if (!medsMap.has(ean)) {
                                 medsMap.set(ean, {
                                     medication: stock.medication,
@@ -155,6 +180,25 @@
                                     <span>${med.form}</span>
                                 </div>
                             `;
+                            
+                            // Add Hover listeners
+                            card.addEventListener('mouseenter', () => {
+                                if (markersByEan[ean]) {
+                                    markersByEan[ean].forEach(m => {
+                                        m.setIcon(pharmaIconHover);
+                                        m.setZIndexOffset(1000);
+                                    });
+                                }
+                            });
+                            card.addEventListener('mouseleave', () => {
+                                if (markersByEan[ean]) {
+                                    markersByEan[ean].forEach(m => {
+                                        m.setIcon(pharmaIcon);
+                                        m.setZIndexOffset(0);
+                                    });
+                                }
+                            });
+                            
                             gridEl.appendChild(card);
                         });
                     });
