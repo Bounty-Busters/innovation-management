@@ -22,7 +22,7 @@
 
     <!-- Main Content -->
     <div class="mf-container">
-        <h2 class="mf-section-title">Available in a 10km Radius</h2>
+        <h2 id="radius-title" class="mf-section-title">Available Nearby</h2>
         
         <div id="nearby-meds-grid" class="mf-grid">
             <!-- Populated via Javascript -->
@@ -60,10 +60,38 @@
                 iconAnchor: [10, 10]
             });
 
-            // 3. Geolocation
+            // 3. Geolocation & Radius
+            const searchRadiusKm = parseFloat(localStorage.getItem('mf_search_radius') || '10');
+            document.getElementById('radius-title').innerText = `Available in a ${searchRadiusKm}km Radius`;
+
             let userLat = 44.4268;
             let userLng = 26.1025;
+            let radiusCircle = null;
             const recenterBtn = document.getElementById('recenter-btn');
+
+            function drawUserLocation(lat, lng) {
+                // User marker
+                L.circleMarker([lat, lng], {
+                    radius: 8,
+                    fillColor: "var(--clr-secondary)",
+                    color: "#fff",
+                    weight: 2,
+                    opacity: 1,
+                    fillOpacity: 0.8
+                }).addTo(map).bindPopup("You are here");
+
+                // Search radius circle
+                if (radiusCircle) {
+                    map.removeLayer(radiusCircle);
+                }
+                radiusCircle = L.circle([lat, lng], {
+                    color: 'var(--clr-primary)',
+                    fillColor: 'var(--clr-primary)',
+                    fillOpacity: 0.05,
+                    weight: 1,
+                    radius: searchRadiusKm * 1000 // meters
+                }).addTo(map);
+            }
 
             if ("geolocation" in navigator) {
                 navigator.geolocation.getCurrentPosition(
@@ -75,28 +103,24 @@
                         statusEl.innerText = "Showing pharmacies near your exact location";
                         recenterBtn.style.display = 'block';
                         
-                        // User marker
-                        L.circleMarker([userLat, userLng], {
-                            radius: 8,
-                            fillColor: "var(--clr-secondary)",
-                            color: "#fff",
-                            weight: 2,
-                            opacity: 1,
-                            fillOpacity: 0.8
-                        }).addTo(map).bindPopup("You are here");
+                        localStorage.setItem('mf_user_lat', userLat);
+                        localStorage.setItem('mf_user_lng', userLng);
 
-                        fetchNearbyStocks(userLat, userLng);
+                        drawUserLocation(userLat, userLng);
+                        fetchNearbyStocks(userLat, userLng, searchRadiusKm);
                     },
                     error => {
                         console.warn("Geolocation denied or failed", error);
                         statusEl.innerText = "Approximate location used (Bucharest Default)";
                         // Fallback to default
-                        fetchNearbyStocks(userLat, userLng);
+                        drawUserLocation(userLat, userLng);
+                        fetchNearbyStocks(userLat, userLng, searchRadiusKm);
                     }
                 );
             } else {
                 statusEl.innerText = "Approximate location used (Bucharest Default)";
-                fetchNearbyStocks(userLat, userLng);
+                drawUserLocation(userLat, userLng);
+                fetchNearbyStocks(userLat, userLng, searchRadiusKm);
             }
 
             recenterBtn.addEventListener('click', () => {
@@ -110,8 +134,8 @@
                 if (searchInput) searchInput.value = searchQuery;
             }
 
-            function fetchNearbyStocks(lat, lng) {
-                fetch(`/api/nearby?lat=${lat}&lng=${lng}&radiusKm=10.0`)
+            function fetchNearbyStocks(lat, lng, radius) {
+                fetch(`/api/nearby?lat=${lat}&lng=${lng}&radiusKm=${radius}`)
                     .then(res => res.json())
                     .then(data => {
                         gridEl.innerHTML = ''; // clear loading
@@ -128,7 +152,7 @@
                         }
 
                         if (filteredData.length === 0) {
-                            gridEl.innerHTML = `<p>No medications found within 10km${searchQuery ? ' matching "' + searchQuery + '"' : ''}.</p>`;
+                            gridEl.innerHTML = `<p>No medications found within ${radius}km${searchQuery ? ' matching "' + searchQuery + '"' : ''}.</p>`;
                             return;
                         }
 

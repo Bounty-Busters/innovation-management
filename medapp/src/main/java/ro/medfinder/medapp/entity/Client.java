@@ -28,6 +28,9 @@ public class Client extends User {
     @Column(name = "city", length = 100)
     private String city;
 
+    @Column(name = "search_radius")
+    private Integer searchRadius;
+
     /** Număr de rezervări gratuite (3–5h) rămase. Se decrementează la creare comandă, se restaurează la reject/cancel. */
     @Column(name = "free_long_reservations_left")
     @Builder.Default

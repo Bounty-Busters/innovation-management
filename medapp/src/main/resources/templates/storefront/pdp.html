@@ -158,9 +158,37 @@
 
                 const markersByLocation = {};
 
-                // Add markers
+                // Add markers and filter rows
+                
+                const userLatStr = localStorage.getItem('mf_user_lat');
+                const userLngStr = localStorage.getItem('mf_user_lng');
+                const searchRadiusKm = parseFloat(localStorage.getItem('mf_search_radius') || '10');
+                
+                let userLat = userLatStr ? parseFloat(userLatStr) : 44.4268;
+                let userLng = userLngStr ? parseFloat(userLngStr) : 26.1025;
+
+                function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
+                    const R = 6371; // Radius of the earth in km
+                    const dLat = (lat2-lat1) * (Math.PI/180);
+                    const dLon = (lon2-lon1) * (Math.PI/180); 
+                    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                              Math.cos(lat1 * (Math.PI/180)) * Math.cos(lat2 * (Math.PI/180)) * 
+                              Math.sin(dLon/2) * Math.sin(dLon/2); 
+                    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
+                    return R * c;
+                }
+
                 stocks.forEach(s => {
+                    const row = document.querySelector(`.mf-price-row[data-location-id="${s.location.id}"]`);
+                    
                     if(s.location.latitude && s.location.longitude) {
+                        const dist = getDistanceFromLatLonInKm(userLat, userLng, s.location.latitude, s.location.longitude);
+                        
+                        if (dist > searchRadiusKm) {
+                            if (row) row.style.display = 'none';
+                            return; // skip adding marker
+                        }
+
                         const marker = L.marker([s.location.latitude, s.location.longitude], {icon: pharmaIcon})
                          .addTo(map)
                          .bindPopup(`<b>${s.location.pharmacyName}</b><br>${s.price} RON`);
