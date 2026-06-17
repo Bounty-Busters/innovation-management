@@ -1,9 +1,13 @@
 default:
     just -l
 
-# Docker compose-u cu mailpit si ce-o mai fi
-run:
-    cd medapp/ && docker compose up --build
+# Run the app in production mode via Docker Compose
+prod:
+    docker compose up medapp --build
+
+# Run the app in development mode with hot-reloading
+dev:
+    docker compose up medapp-dev --watch --build
 
 test:
     cd medapp/ && ./gradlew test

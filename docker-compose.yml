@@ -1,5 +1,3 @@
-
-
 services:
   medapp:
     build:
@@ -8,13 +6,34 @@ services:
     container_name: medfinder-app
     ports:
       - "8080:8080"
-    environment:
-      # Inject Mailpit host and port to Spring Boot
-      - SPRING_MAIL_HOST=mailpit
-      - SPRING_MAIL_PORT=1025
+    env_file: .env
     depends_on:
       - mailpit
     restart: unless-stopped
+
+  medapp-dev:
+    build:
+      context: ./medapp
+      dockerfile: Dockerfile
+      target: build
+    container_name: medfinder-app-dev
+    ports:
+      - "8080:8080"
+    env_file: .env
+    depends_on:
+      - mailpit
+    volumes:
+      - gradle-cache:/root/.gradle
+    working_dir: /app
+    entrypoint: []
+    command: ./gradlew bootRun --no-daemon
+    develop:
+      watch:
+        - path: ./medapp/src/main/resources
+          action: sync
+          target: /app/src/main/resources
+        - path: ./medapp/src/main/java
+          action: rebuild
 
   mailpit:
     image: axllent/mailpit
@@ -23,3 +42,6 @@ services:
     ports:
       - "8025:8025" # Mailpit Web UI
       - "1025:1025" # Mailpit SMTP Server
+
+volumes:
+  gradle-cache:

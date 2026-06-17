@@ -87,7 +87,7 @@
             let radiusCircle = null;
             const recenterBtn = document.getElementById('recenter-btn');
 
-            function updateRadius(val, updateInputSource = true) {
+            function updateRadius(val, updateInputSource = true, fitBounds = true) {
                 let parsed = parseFloat(val);
                 if (isNaN(parsed) || parsed < 1) parsed = 1;
                 if (parsed > 100) parsed = 100;
@@ -102,18 +102,20 @@
                 
                 if (radiusCircle) {
                     radiusCircle.setRadius(searchRadiusKm * 1000);
-                    map.fitBounds(radiusCircle.getBounds(), { animate: false });
+                    if (fitBounds) {
+                        map.fitBounds(radiusCircle.getBounds(), { animate: true });
+                    }
                 }
             }
 
             // Live Slider Update
             radiusSlider.addEventListener('input', (e) => {
-                updateRadius(e.target.value, false);
+                updateRadius(e.target.value, false, false);
                 radiusInput.value = e.target.value;
             });
 
             radiusInput.addEventListener('input', (e) => {
-                updateRadius(e.target.value, false);
+                updateRadius(e.target.value, false, false);
                 radiusSlider.value = e.target.value;
             });
 
@@ -128,6 +130,11 @@
                 
                 localStorage.setItem('mf_search_radius', parsed);
                 syncRadiusToBackend(parsed);
+                
+                if (radiusCircle) {
+                    map.fitBounds(radiusCircle.getBounds(), { animate: true });
+                }
+                
                 fetchNearbyStocks(userLat, userLng, parsed);
             }
 
