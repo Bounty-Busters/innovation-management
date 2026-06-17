@@ -1,5 +1,28 @@
+/* Tokyo Night Theme for Admin Panel */
+:root {
+    --clr-bg: #1a1b26;
+    --clr-surface: rgba(36, 40, 59, 0.8);
+    --clr-surface-hover: rgba(65, 72, 104, 0.8);
+    --clr-border: rgba(192, 202, 245, 0.1);
+    
+    --clr-accent: #7dcfff;
+    --clr-accent-dim: rgba(125, 207, 255, 0.15);
+    --clr-secondary: #bb9af7;
+    
+    --clr-text: #c0caf5;
+    --clr-text-muted: #565f89;
+
+    --bs-body-bg: var(--clr-bg);
+    --bs-body-color: var(--clr-text);
+    --bs-border-color: var(--clr-border);
+    --bs-primary: var(--clr-accent);
+    --bs-secondary: var(--clr-secondary);
+    --bs-card-bg: var(--clr-surface);
+}
+
 body {
-    background-color: #f8f9fa;
+    background-color: var(--bs-body-bg);
+    color: var(--bs-body-color);
 }
 
 /* Sidebar styling */
@@ -11,7 +34,8 @@ body {
     z-index: 100;
     padding: 48px 0 0; /* Height of navbar */
     box-shadow: inset -1px 0 0 rgba(0, 0, 0, .1);
-    background-color: #212529; /* Dark theme */
+    background-color: #16161e !important;
+    border-right: 1px solid var(--clr-border);
 }
 
 .sidebar-sticky {
@@ -25,7 +49,7 @@ body {
 
 .sidebar .nav-link {
     font-weight: 500;
-    color: #adb5bd;
+    color: var(--clr-text-muted);
     padding: 0.5rem 1rem;
     margin-bottom: 0.25rem;
     display: flex;
@@ -33,12 +57,12 @@ body {
 }
 
 .sidebar .nav-link:hover {
-    color: #fff;
+    color: var(--clr-text);
 }
 
 .sidebar .nav-link.active {
     color: #fff;
-    background-color: #0d6efd;
+    background-color: var(--clr-surface-hover);
     border-radius: 0.25rem;
     margin: 0 0.5rem 0.25rem 0.5rem;
     padding-left: 0.5rem;
@@ -50,6 +74,11 @@ body {
 }
 
 /* Navbar */
+.bg-dark, .navbar {
+    background-color: #16161e !important;
+    border-bottom: 1px solid var(--clr-border);
+}
+
 .navbar-brand {
     padding-top: .75rem;
     padding-bottom: .75rem;
@@ -76,4 +105,111 @@ main {
 
 .card-stats:hover {
     transform: translateY(-5px);
+}
+
+/* Bootstrap Overrides for Dark Mode */
+.card {
+    background-color: var(--clr-surface);
+    border-color: var(--clr-border);
+    color: var(--clr-text);
+}
+
+.card-header {
+    background-color: rgba(0,0,0,0.2);
+    border-bottom-color: var(--clr-border);
+    color: #fff;
+}
+
+.table {
+    color: var(--clr-text);
+    --bs-table-bg: transparent;
+    --bs-table-color: var(--clr-text);
+    --bs-table-striped-bg: rgba(255,255,255,0.02);
+    --bs-table-hover-bg: rgba(255,255,255,0.05);
+    --bs-table-border-color: var(--clr-border);
+}
+
+.table-light, .table th, thead.table-light th {
+    background-color: rgba(0,0,0,0.2) !important;
+    color: #fff !important;
+    border-color: var(--clr-border);
+}
+
+.form-control, .form-select {
+    background-color: rgba(0,0,0,0.2);
+    border-color: var(--clr-border);
+    color: var(--clr-text);
+}
+.form-control:focus, .form-select:focus {
+    background-color: rgba(0,0,0,0.3);
+    border-color: var(--clr-accent);
+    color: var(--clr-text);
+    box-shadow: 0 0 0 0.25rem var(--clr-accent-dim);
+}
+
+.btn-primary {
+    background-color: var(--clr-accent);
+    border-color: var(--clr-accent);
+    color: #000;
+}
+.btn-primary:hover {
+    background-color: #5bbde3;
+    border-color: #5bbde3;
+    color: #000;
+}
+
+.btn-outline-secondary {
+    color: var(--clr-text-muted);
+    border-color: var(--clr-border);
+}
+.btn-outline-secondary:hover {
+    background-color: var(--clr-surface-hover);
+    color: var(--clr-text);
+}
+
+.text-muted {
+    color: var(--clr-text-muted) !important;
+}
+
+.border-bottom {
+    border-bottom-color: var(--clr-border) !important;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    color: #fff;
+}
+
+/* Modal */
+.modal-content {
+    background-color: var(--clr-bg);
+    border-color: var(--clr-border);
+    color: var(--clr-text);
+}
+.modal-header, .modal-footer {
+    border-color: var(--clr-border);
+}
+.btn-close {
+    filter: invert(1) grayscale(100%) brightness(200%);
+}
+
+/* Pagination */
+.page-link {
+    background-color: var(--clr-surface);
+    border-color: var(--clr-border);
+    color: var(--clr-accent);
+}
+.page-link:hover {
+    background-color: var(--clr-surface-hover);
+    border-color: var(--clr-border);
+    color: #fff;
+}
+.page-item.active .page-link {
+    background-color: var(--clr-accent);
+    border-color: var(--clr-accent);
+    color: #000;
+}
+.page-item.disabled .page-link {
+    background-color: rgba(0,0,0,0.2);
+    border-color: var(--clr-border);
+    color: var(--clr-text-muted);
 }
