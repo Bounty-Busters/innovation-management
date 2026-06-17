@@ -12,10 +12,15 @@ import ro.medfinder.medapp.entity.enums.Role;
 import ro.medfinder.medapp.repository.*;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.DayOfWeek;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Random;
+import java.util.Set;
 
 @Component
 @RequiredArgsConstructor
@@ -73,148 +78,72 @@ public class DataLoader implements CommandLineRunner {
         userRepository.save(owner2);
 
         // ── 3. PHARMACIES ──────────────────────────────────────────
-        Pharmacy catena = Pharmacy.builder()
-                .name("Catena")
-                .cui("RO12345678")
-                .phone("0700000001")
-                .email("contact@catena.ro")
-                .website("https://www.catena.ro")
-                .owner(owner1)
-                .active(true)
-                .syncEnabled(true)
-                .build();
-        pharmacyRepository.save(catena);
+        // Chains (owner1)
+        Pharmacy catena = createPharmacy("Catena", "RO12345678", "0700000001", "contact@catena.ro", "https://www.catena.ro", owner1);
+        Pharmacy drMax = createPharmacy("Dr. Max", "RO87654321", "0700000002", "contact@drmax.ro", "https://www.drmax.ro", owner1);
+        Pharmacy farmaTei = createPharmacy("Farmacia Tei", "RO11223344", "0700000003", "contact@farmaciatei.ro", "https://www.farmaciatei.ro", owner2);
+        Pharmacy helpNet = createPharmacy("HelpNet", "RO55667788", "0700000004", "contact@helpnet.ro", "https://www.helpnet.ro", owner1);
+        Pharmacy dona = createPharmacy("Dona", "RO99887766", "0700000005", "contact@farmaciiledona.ro", "https://www.farmaciiledona.ro", owner1);
 
-        Pharmacy drMax = Pharmacy.builder()
-                .name("Dr. Max")
-                .cui("RO87654321")
-                .phone("0700000002")
-                .email("contact@drmax.ro")
-                .website("https://www.drmax.ro")
-                .owner(owner1)
-                .active(true)
-                .build();
-        pharmacyRepository.save(drMax);
-
-        Pharmacy farmaTei = Pharmacy.builder()
-                .name("Farmacia Tei")
-                .cui("RO11223344")
-                .phone("0700000003")
-                .email("contact@farmaciatei.ro")
-                .owner(owner2)
-                .active(true)
-                .build();
-        pharmacyRepository.save(farmaTei);
+        // Independents (owner2)
+        Pharmacy sfAna = createPharmacy("Farmacia Sfânta Ana", "RO22334455", "0711000001", "sfanta.ana@independent.ro", null, owner2);
+        Pharmacy hipocrat = createPharmacy("Farmacia Hipocrat", "RO33445566", "0711000002", "hipocrat@independent.ro", null, owner2);
+        Pharmacy medikon = createPharmacy("Medikon Pharma", "RO44556677", "0711000003", "medikon@independent.ro", null, owner2);
+        Pharmacy greenApoteca = createPharmacy("Green Apoteca", "RO55667711", "0711000004", "green.apoteca@independent.ro", null, owner2);
 
         // ── 4. LOCATIONS ───────────────────────────────────────────
-        Location catenaUnirii = Location.builder()
-                .name("Catena Unirii")
-                .address("Piata Unirii 1")
-                .city("Bucuresti")
-                .county("Bucuresti")
-                .postalCode("030031")
-                .latitude(44.4268)
-                .longitude(26.1025)
-                .phone("0210000001")
-                .pharmacy(catena)
-                .active(true)
-                .build();
-        locationRepository.save(catenaUnirii);
+        List<Location> locations = new ArrayList<>();
 
-        Location catenaVictoriei = Location.builder()
-                .name("Catena Victoriei")
-                .address("Calea Victoriei 100")
-                .city("Bucuresti")
-                .county("Bucuresti")
-                .postalCode("010072")
-                .latitude(44.4400)
-                .longitude(26.0960)
-                .phone("0210000002")
-                .pharmacy(catena)
-                .active(true)
-                .build();
-        locationRepository.save(catenaVictoriei);
+        // Bucharest locations
+        Location catenaUnirii = createLoc("Catena Unirii", "Piata Unirii 1", "Bucuresti", "Bucuresti", "030031", 44.4268, 26.1025, "0210000001", catena);
+        Location catenaVictoriei = createLoc("Catena Victoriei", "Calea Victoriei 100", "Bucuresti", "Bucuresti", "010072", 44.4400, 26.0960, "0210000002", catena);
+        Location catenaObor = createLoc("Catena Obor", "Sos. Colentina 2", "Bucuresti", "Bucuresti", "021171", 44.4501, 26.1264, "0210000003", catena);
+        Location drMaxRomana = createLoc("Dr. Max Romană", "Piata Romana 5", "Bucuresti", "Bucuresti", "010373", 44.4463, 26.0967, "0210000004", drMax);
+        Location drMaxUniversitate = createLoc("Dr. Max Universitate", "Bulevardul Regina Elisabeta 3", "Bucuresti", "Bucuresti", "030011", 44.4356, 26.1025, "0210000005", drMax);
+        Location farmaTeiFloreasca = createLoc("Farmacia Tei Floreasca", "Calea Floreasca 111-113", "Bucuresti", "Bucuresti", "014455", 44.4622, 26.1089, "0210000006", farmaTei);
+        Location helpNetDorobanti = createLoc("HelpNet Dorobanți", "Calea Dorobanților 80", "Bucuresti", "Bucuresti", "010577", 44.4560, 26.0970, "0210000007", helpNet);
+        Location donaDristor = createLoc("Dona Dristor", "Bulevardul Camil Ressu 1", "Bucuresti", "Bucuresti", "031731", 44.4208, 26.1415, "0210000008", dona);
+        Location sfAnaBucuresti = createLoc("Farmacia Sfânta Ana", "Str. Lipscani 45", "Bucuresti", "Bucuresti", "030022", 44.4300, 26.1100, "0210000009", sfAna);
+        Location hipocratBucuresti = createLoc("Farmacia Hipocrat Titan", "Str. Liviu Rebreanu 12", "Bucuresti", "Bucuresti", "031785", 44.4250, 26.1600, "0210000010", hipocrat);
 
-        Location drMaxCluj = Location.builder()
-                .name("Dr. Max Cluj")
-                .address("Str. Memorandumului 10")
-                .city("Cluj-Napoca")
-                .county("Cluj")
-                .postalCode("400114")
-                .latitude(46.7712)
-                .longitude(23.5912)
-                .phone("0264000001")
-                .pharmacy(drMax)
-                .active(true)
-                .build();
-        locationRepository.save(drMaxCluj);
+        locations.addAll(List.of(catenaUnirii, catenaVictoriei, catenaObor, drMaxRomana, drMaxUniversitate, farmaTeiFloreasca, helpNetDorobanti, donaDristor, sfAnaBucuresti, hipocratBucuresti));
 
-        Location farmaTeiTimisoara = Location.builder()
-                .name("Farmacia Tei Timișoara")
-                .address("Bd. Revoluției 5")
-                .city("Timișoara")
-                .county("Timiș")
-                .postalCode("300024")
-                .latitude(45.7489)
-                .longitude(21.2087)
-                .phone("0256000001")
-                .pharmacy(farmaTei)
-                .active(true)
-                .build();
-        locationRepository.save(farmaTeiTimisoara);
+        // Cluj-Napoca locations (Centered around Dr. Max Cluj: 46.7712, 23.5912. Placed West-ward to be within 10km)
+        Location drMaxCluj = createLoc("Dr. Max Cluj Centru", "Str. Memorandumului 10", "Cluj-Napoca", "Cluj", "400114", 46.7712, 23.5912, "0264000001", drMax);
+        Location catenaClujGrigorescu = createLoc("Catena Cluj Grigorescu", "Str. Alexandru Vlahuță 2", "Cluj-Napoca", "Cluj", "400320", 46.7680, 23.5550, "0264000002", catena);
+        Location helpNetClujManastur = createLoc("HelpNet Cluj Mănăștur", "Calea Florești 77", "Cluj-Napoca", "Cluj", "400511", 46.7560, 23.5620, "0264000003", helpNet);
+        Location donaClujGrigorescu = createLoc("Dona Cluj Grigorescu", "Str. Fântânele 11", "Cluj-Napoca", "Cluj", "400325", 46.7720, 23.5480, "0264000004", dona);
+        Location farmaTeiClujWest = createLoc("Farmacia Tei Cluj West", "Str. Primăverii 2", "Cluj-Napoca", "Cluj", "400532", 46.7600, 23.5350, "0264000005", farmaTei);
+        Location sfAnaCluj = createLoc("Farmacia Sfânta Ana Cluj", "Str. Donath 15", "Cluj-Napoca", "Cluj", "400300", 46.7690, 23.5700, "0264000006", sfAna);
+        Location hipocratClujZorilor = createLoc("Farmacia Hipocrat Cluj Zorilor", "Str. Observatorului 109", "Cluj-Napoca", "Cluj", "400438", 46.7510, 23.5850, "0264000007", hipocrat);
+        Location medikonCluj = createLoc("Medikon Pharma Cluj", "Str. Grigore Alexandrescu 5", "Cluj-Napoca", "Cluj", "400540", 46.7750, 23.5450, "0264000008", medikon);
+        Location greenApotecaCluj = createLoc("Green Apoteca Cluj Centru", "Str. George Coșbuc 1", "Cluj-Napoca", "Cluj", "400375", 46.7705, 23.5800, "0264000009", greenApoteca);
 
-        // ── 5. WORKING HOURS ───────────────────────────────────────
-        createDefaultWorkingHours(catenaUnirii);
-        createDefaultWorkingHours(catenaVictoriei);
-        createDefaultWorkingHours(drMaxCluj);
-        createDefaultWorkingHours(farmaTeiTimisoara);
+        locations.addAll(List.of(drMaxCluj, catenaClujGrigorescu, helpNetClujManastur, donaClujGrigorescu, farmaTeiClujWest, sfAnaCluj, hipocratClujZorilor, medikonCluj, greenApotecaCluj));
 
-        // ── 6. PHARMACISTS ─────────────────────────────────────────
-        Pharmacist pharmacist1 = Pharmacist.builder()
-                .email("farmacist@medfinder.ro")
-                .password(passwordEncoder.encode("pharma123"))
-                .firstName("Maria")
-                .lastName("Farmacist")
-                .role(Role.PHARMACIST)
-                .enabled(true)
-                .location(catenaUnirii)
-                .build();
-        userRepository.save(pharmacist1);
+        // Timișoara locations
+        Location farmaTeiTimisoara = createLoc("Farmacia Tei Timișoara", "Bd. Revoluției 5", "Timișoara", "Timiș", "300024", 45.7489, 21.2087, "0256000001", farmaTei);
+        Location catenaTimisoaraCentru = createLoc("Catena Timișoara Centru", "Str. Alba Iulia 2", "Timișoara", "Timiș", "300077", 45.7535, 21.2250, "0256000002", catena);
+        Location donaTimisoaraIosefin = createLoc("Dona Timișoara Iosefin", "Str. Gheorghe Doja 20", "Timișoara", "Timiș", "300192", 45.7440, 21.2070, "0256000003", dona);
+        Location greenApotecaTimisoara = createLoc("Green Apoteca Timișoara", "Piața Bălcescu 3", "Timișoara", "Timiș", "300223", 45.7420, 21.2260, "0256000004", greenApoteca);
 
-        Pharmacist pharmacist2 = Pharmacist.builder()
-                .email("farmacist2@medfinder.ro")
-                .password(passwordEncoder.encode("pharma123"))
-                .firstName("Andrei")
-                .lastName("Popescu")
-                .role(Role.PHARMACIST)
-                .enabled(true)
-                .location(catenaVictoriei)
-                .build();
-        userRepository.save(pharmacist2);
+        locations.addAll(List.of(farmaTeiTimisoara, catenaTimisoaraCentru, donaTimisoaraIosefin, greenApotecaTimisoara));
 
-        Pharmacist pharmacist3 = Pharmacist.builder()
-                .email("farmacist3@medfinder.ro")
-                .password(passwordEncoder.encode("pharma123"))
-                .firstName("Ana")
-                .lastName("Dumitrescu")
-                .role(Role.PHARMACIST)
-                .enabled(true)
-                .location(drMaxCluj)
-                .build();
-        userRepository.save(pharmacist3);
+        // Save all locations & working hours
+        for (Location loc : locations) {
+            locationRepository.save(loc);
+            createDefaultWorkingHours(loc);
+        }
 
-        Pharmacist pharmacist4 = Pharmacist.builder()
-                .email("farmacist4@medfinder.ro")
-                .password(passwordEncoder.encode("pharma123"))
-                .firstName("Mihai")
-                .lastName("Popa")
-                .role(Role.PHARMACIST)
-                .enabled(true)
-                .location(farmaTeiTimisoara)
-                .build();
-        userRepository.save(pharmacist4);
+        // ── 5. PHARMACISTS ─────────────────────────────────────────
+        Pharmacist pharmacist1 = createPharmacist("farmacist@medfinder.ro", "pharma123", "Maria", "Farmacist", catenaUnirii);
+        Pharmacist pharmacist2 = createPharmacist("farmacist2@medfinder.ro", "pharma123", "Andrei", "Popescu", catenaVictoriei);
+        Pharmacist pharmacist3 = createPharmacist("farmacist3@medfinder.ro", "pharma123", "Ana", "Dumitrescu", drMaxCluj);
+        Pharmacist pharmacist4 = createPharmacist("farmacist4@medfinder.ro", "pharma123", "Mihai", "Popa", farmaTeiTimisoara);
+        
+        userRepository.saveAll(List.of(pharmacist1, pharmacist2, pharmacist3, pharmacist4));
 
-        // ── 7. CLIENTS ─────────────────────────────────────────────
+        // ── 6. CLIENTS ─────────────────────────────────────────────
         Client client1 = Client.builder()
                 .email("client1@gmail.com")
                 .password(passwordEncoder.encode("client123"))
@@ -254,7 +183,8 @@ public class DataLoader implements CommandLineRunner {
                 .build();
         userRepository.save(client3);
 
-        // ── 8. MEDICATIONS ─────────────────────────────────────────
+        // ── 7. MEDICATIONS ─────────────────────────────────────────
+        List<Medication> meds = new ArrayList<>();
         Medication paracetamol = createMed("5941732000010", "Paracetamol 500mg", "Paracetamolum", MedForm.TABLET, "500mg", "Analgezice", false);
         Medication nurofen = createMed("5941732000027", "Nurofen Răceală și Gripă", "Ibuprofen + Pseudoefedrină", MedForm.TABLET, "200mg/30mg", "Antiinflamatoare", false);
         Medication amoxicilina = createMed("5941732000034", "Amoxicilina 500mg", "Amoxicillinum", MedForm.CAPSULE, "500mg", "Antibiotice", true);
@@ -270,36 +200,84 @@ public class DataLoader implements CommandLineRunner {
         Medication spasmomen = createMed("5941732000133", "Spasmomen 40mg", "Otilonium", MedForm.TABLET, "40mg", "Gastroenterologie", true);
         Medication claritine = createMed("5941732000140", "Claritine 10mg", "Loratadinum", MedForm.TABLET, "10mg", "Antialergice", false);
         Medication coldrex = createMed("5941732000157", "Coldrex MaxGrip", "Paracetamol + Fenilefrină + Acid ascorbic", MedForm.OTHER, "1000mg/10mg/40mg", "Antigripale", false);
+        
+        // New Medications for richer catalog
+        Medication nospa = createMed("5941732000164", "No-Spa 40mg", "Drotaverinum", MedForm.TABLET, "40mg", "Antispastice", false);
+        Medication aspenter = createMed("5941732000171", "Aspenter 75mg", "Acidum acetylsalicylicum", MedForm.TABLET, "75mg", "Cardiovasculare", false);
+        Medication ketonal = createMed("5941732000188", "Ketonal 100mg", "Ketoprofenum", MedForm.TABLET, "100mg", "Antiinflamatoare", true);
+        Medication linex = createMed("5941732000195", "Linex Forte", "Lactobacillus + Bifidobacterium", MedForm.CAPSULE, "Standard", "Probiotice", false);
+        Medication smecta = createMed("5941732000201", "Smecta", "Diosmectitum", MedForm.OTHER, "3g", "Gastroenterologie", false);
+        Medication olynth = createMed("5941732000218", "Olynth 0.1% Spray", "Xylometazolinum", MedForm.OTHER, "10ml", "ORL", false);
+        Medication aerius = createMed("5941732000225", "Aerius 5mg", "Desloratadinum", MedForm.TABLET, "5mg", "Antialergice", false);
+        Medication zyrtec = createMed("5941732000232", "Zyrtec 10mg", "Cetirizinum", MedForm.TABLET, "10mg", "Antialergice", false);
+        Medication voltaren = createMed("5941732000249", "Voltaren Emulgel 2%", "Diclofenacum", MedForm.OTHER, "100g", "Antiinflamatoare", false);
 
-        medicationRepository.saveAll(List.of(paracetamol, nurofen, amoxicilina, augmentin, metformin,
-                amlodipina, omeprazol, vitamina_c, strepsils, aspirin, brufen, colebil, spasmomen, claritine, coldrex));
+        meds.addAll(List.of(paracetamol, nurofen, amoxicilina, augmentin, metformin, amlodipina, omeprazol,
+                vitamina_c, strepsils, aspirin, brufen, colebil, spasmomen, claritine, coldrex,
+                nospa, aspenter, ketonal, linex, smecta, olynth, aerius, zyrtec, voltaren));
 
-        // ── 9. MED STOCKS ──────────────────────────────────────────
-        createStock(catenaUnirii, paracetamol, 150, "9.50");
-        createStock(catenaUnirii, nurofen, 45, "25.99");
-        createStock(catenaUnirii, amoxicilina, 30, "18.50");
-        createStock(catenaUnirii, omeprazol, 80, "22.00");
-        createStock(catenaUnirii, vitamina_c, 200, "12.99");
-        createStock(catenaUnirii, aspirin, 120, "15.00");
+        medicationRepository.saveAll(meds);
 
-        createStock(catenaVictoriei, paracetamol, 90, "9.50");
-        createStock(catenaVictoriei, augmentin, 25, "42.00");
-        createStock(catenaVictoriei, metformin, 60, "28.50");
-        createStock(catenaVictoriei, claritine, 40, "19.99");
+        // ── 8. MED STOCKS (Crossover Seeding) ──────────────────────
+        Set<String> existingStocks = new HashSet<>();
 
-        createStock(drMaxCluj, nurofen, 70, "24.99");
-        createStock(drMaxCluj, amoxicilina, 35, "17.50");
-        createStock(drMaxCluj, amlodipina, 50, "32.00");
-        createStock(drMaxCluj, strepsils, 100, "16.50");
-        createStock(drMaxCluj, coldrex, 85, "14.99");
+        // Ensure order-dependent stocks are seeded first
+        createStockWithCheck(catenaUnirii, paracetamol, 150, "9.50", existingStocks);
+        createStockWithCheck(catenaUnirii, nurofen, 45, "25.99", existingStocks);
+        createStockWithCheck(catenaUnirii, amoxicilina, 30, "18.50", existingStocks);
+        createStockWithCheck(catenaUnirii, omeprazol, 80, "22.00", existingStocks);
+        createStockWithCheck(catenaUnirii, vitamina_c, 200, "12.99", existingStocks);
+        createStockWithCheck(catenaUnirii, aspirin, 120, "15.00", existingStocks);
 
-        createStock(farmaTeiTimisoara, paracetamol, 110, "8.99");
-        createStock(farmaTeiTimisoara, brufen, 55, "21.00");
-        createStock(farmaTeiTimisoara, colebil, 40, "35.00");
-        createStock(farmaTeiTimisoara, spasmomen, 30, "45.00");
-        createStock(farmaTeiTimisoara, vitamina_c, 150, "11.99");
+        createStockWithCheck(catenaVictoriei, paracetamol, 90, "9.50", existingStocks);
+        createStockWithCheck(catenaVictoriei, augmentin, 25, "42.00", existingStocks);
+        createStockWithCheck(catenaVictoriei, metformin, 60, "28.50", existingStocks);
+        createStockWithCheck(catenaVictoriei, claritine, 40, "19.99", existingStocks);
 
-        // ── 10. ORDERS ─────────────────────────────────────────────
+        createStockWithCheck(drMaxCluj, nurofen, 70, "24.99", existingStocks);
+        createStockWithCheck(drMaxCluj, amoxicilina, 35, "17.50", existingStocks);
+        createStockWithCheck(drMaxCluj, amlodipina, 50, "32.00", existingStocks);
+        createStockWithCheck(drMaxCluj, strepsils, 100, "16.50", existingStocks);
+        createStockWithCheck(drMaxCluj, coldrex, 85, "14.99", existingStocks);
+
+        createStockWithCheck(farmaTeiTimisoara, paracetamol, 110, "8.99", existingStocks);
+        createStockWithCheck(farmaTeiTimisoara, brufen, 55, "21.00", existingStocks);
+        createStockWithCheck(farmaTeiTimisoara, colebil, 40, "35.00", existingStocks);
+        createStockWithCheck(farmaTeiTimisoara, spasmomen, 30, "45.00", existingStocks);
+        createStockWithCheck(farmaTeiTimisoara, vitamina_c, 150, "11.99", existingStocks);
+
+        // Generate dynamic crossover stocks using a seeded Random for consistency
+        Random rand = new Random(42);
+        for (Location loc : locations) {
+            for (Medication med : meds) {
+                // High demand meds (Paracetamol, Nurofen, Coldrex, Vitamin C, Voltaren, Olynth) should be in almost all pharmacies
+                boolean isHighDemand = List.of(paracetamol, nurofen, coldrex, vitamina_c, voltaren, olynth).contains(med);
+                double probability = isHighDemand ? 0.90 : 0.45;
+
+                if (rand.nextDouble() < probability) {
+                    // Decide price based on base price ranges
+                    double baseMinPrice = 8.00;
+                    double baseMaxPrice = 50.00;
+
+                    if (med == paracetamol) { baseMinPrice = 7.50; baseMaxPrice = 11.50; }
+                    else if (med == nurofen) { baseMinPrice = 21.00; baseMaxPrice = 28.50; }
+                    else if (med == coldrex) { baseMinPrice = 13.00; baseMaxPrice = 18.00; }
+                    else if (med == vitamina_c) { baseMinPrice = 9.99; baseMaxPrice = 14.50; }
+                    else if (med == voltaren) { baseMinPrice = 34.00; baseMaxPrice = 45.00; }
+                    else if (med == augmentin) { baseMinPrice = 38.00; baseMaxPrice = 48.00; }
+                    else if (med == ketonal) { baseMinPrice = 19.00; baseMaxPrice = 26.00; }
+                    else if (med == linex) { baseMinPrice = 28.00; baseMaxPrice = 36.00; }
+
+                    double rawPrice = baseMinPrice + (baseMaxPrice - baseMinPrice) * rand.nextDouble();
+                    BigDecimal price = BigDecimal.valueOf(rawPrice).setScale(2, RoundingMode.HALF_UP);
+                    int qty = 10 + rand.nextInt(190); // 10 to 200 units
+
+                    createStockWithCheck(loc, med, qty, price.toString(), existingStocks);
+                }
+            }
+        }
+
+        // ── 9. ORDERS ─────────────────────────────────────────────
         Order order1 = createOrder("ORD-20260615-0001", client1, catenaUnirii, OrderStatus.PENDING,
                 new BigDecimal("35.49"), LocalDateTime.now().minusHours(2));
         createOrderItem(order1, paracetamol, 2, new BigDecimal("9.50"));
@@ -350,10 +328,52 @@ public class DataLoader implements CommandLineRunner {
         updateOrderTotal(order8);
         orderRepository.save(order8);
 
-        System.out.println("✅ Seed data loaded successfully — Phase 2 enhanced dataset.");
+        System.out.println("✅ Seed data loaded successfully — Massive high-crossover dataset initialized.");
     }
 
     // ── Helper methods ─────────────────────────────────────────────
+
+    private Pharmacy createPharmacy(String name, String cui, String phone, String email, String website, PharmOwner owner) {
+        Pharmacy p = Pharmacy.builder()
+                .name(name)
+                .cui(cui)
+                .phone(phone)
+                .email(email)
+                .website(website)
+                .owner(owner)
+                .active(true)
+                .syncEnabled(true)
+                .build();
+        return pharmacyRepository.save(p);
+    }
+
+    private Location createLoc(String name, String address, String city, String county, String postalCode,
+                               double lat, double lng, String phone, Pharmacy pharmacy) {
+        return Location.builder()
+                .name(name)
+                .address(address)
+                .city(city)
+                .county(county)
+                .postalCode(postalCode)
+                .latitude(lat)
+                .longitude(lng)
+                .phone(phone)
+                .pharmacy(pharmacy)
+                .active(true)
+                .build();
+    }
+
+    private Pharmacist createPharmacist(String email, String rawPassword, String firstName, String lastName, Location location) {
+        return Pharmacist.builder()
+                .email(email)
+                .password(passwordEncoder.encode(rawPassword))
+                .firstName(firstName)
+                .lastName(lastName)
+                .role(Role.PHARMACIST)
+                .enabled(true)
+                .location(location)
+                .build();
+    }
 
     private Medication createMed(String ean, String name, String activeSubstance, MedForm form,
                                   String dosage, String category, boolean prescriptionRequired) {
@@ -368,7 +388,12 @@ public class DataLoader implements CommandLineRunner {
                 .build();
     }
 
-    private void createStock(Location location, Medication medication, int quantity, String price) {
+    private void createStockWithCheck(Location location, Medication medication, int quantity, String price, Set<String> existingKeys) {
+        String key = location.getName() + "_" + medication.getEan();
+        if (existingKeys.contains(key)) {
+            return;
+        }
+        existingKeys.add(key);
         MedStock stock = MedStock.builder()
                 .location(location)
                 .medication(medication)
@@ -403,7 +428,6 @@ public class DataLoader implements CommandLineRunner {
     }
 
     private void updateOrderTotal(Order order) {
-        // Re-fetch items after creating them
         BigDecimal total = orderItemRepository.findAll().stream()
                 .filter(item -> item.getOrder().getId().equals(order.getId()))
                 .map(OrderItem::getSubtotal)
@@ -428,3 +452,4 @@ public class DataLoader implements CommandLineRunner {
         }
     }
 }
+
